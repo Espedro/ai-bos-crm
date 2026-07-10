@@ -1,0 +1,374 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ContactStatus {
+  LEAD
+  QUALIFIED
+  CUSTOMER
+}
+
+enum ActivityType {
+  CONTACT_CREATED
+  COMPANY_CREATED
+  DEAL_CREATED
+  STAGE_CHANGED
+  NOTE_ADDED
+  TASK_CREATED
+  TASK_COMPLETED
+  CONVERSATION_STARTED
+  CONVERSATION_ESCALATED
+}
+
+enum ResourceCategory {
+  PRODUCT
+  SERVICE
+  FAQ
+  POLICY
+  PRICE_LIST
+  OTHER
+}
+
+enum ConversationChannel {
+  WHATSAPP
+  FACEBOOK
+  INSTAGRAM
+  EMAIL
+  WEBCHAT
+}
+
+enum ConversationStatus {
+  AI_HANDLING
+  ESCALATED
+  CLOSED
+}
+
+enum MessageSender {
+  CUSTOMER
+  AI
+  AGENT
+}
+
+enum ChannelConnectionStatus {
+  DISCONNECTED
+  CONNECTED
+  ERROR
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum RecipientSendStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Agent {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  assignedContacts      Contact[]
+  assignedDeals         Deal[]
+  assignedTasks         Task[]
+  notes                 Note[]
+  assignedConversations Conversation[]
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  industry  String?
+  website   String?
+  phone     String?
+  address   String?
+  tags      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts Contact[]
+  deals    Deal[]
+  notes    Note[]
+}
+
+model Contact {
+  id              String        @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  status          ContactStatus @default(LEAD)
+  leadScore       Int           @default(0)
+  tags            String        @default("")
+  companyId       String?
+  assignedAgentId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  company            Company?            @relation(fields: [companyId], references: [id])
+  assignedAgent      Agent?              @relation(fields: [assignedAgentId], references: [id])
+  deals              Deal[]
+  tasks              Task[]
+  notes              Note[]
+  activities         ActivityEvent[]
+  conversations      Conversation[]
+  formSubmissions    FormSubmission[]
+  campaignRecipients CampaignRecipient[]
+}
+
+model Stage {
+  id    String @id @default(cuid())
+  name  String
+  order Int
+
+  deals Deal[]
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  title             String
+  value             Float     @default(0)
+  currency          String    @default("USD")
+  expectedCloseDate DateTime?
+  contactId         String
+  companyId         String?
+  stageId           String
+  assignedAgentId   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  contact       Contact         @relation(fields: [contactId], references: [id])
+  company       Company?        @relation(fields: [companyId], references: [id])
+  stage         Stage           @relation(fields: [stageId], references: [id])
+  assignedAgent Agent?          @relation(fields: [assignedAgentId], references: [id])
+  tasks         Task[]
+  notes         Note[]
+  activities    ActivityEvent[]
+}
+
+model Task {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  dueDate         DateTime?
+  completed       Boolean   @default(false)
+  contactId       String?
+  dealId          String?
+  assignedAgentId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  contact       Contact? @relation(fields: [contactId], references: [id])
+  deal          Deal?    @relation(fields: [dealId], references: [id])
+  assignedAgent Agent?   @relation(fields: [assignedAgentId], references: [id])
+}
+
+model Note {
+  id            String   @id @default(cuid())
+  body          String
+  contactId     String?
+  dealId        String?
+  companyId     String?
+  authorAgentId String?
+  createdAt     DateTime @default(now())
+
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  deal        Deal?    @relation(fields: [dealId], references: [id])
+  company     Company? @relation(fields: [companyId], references: [id])
+  authorAgent Agent?   @relation(fields: [authorAgentId], references: [id])
+}
+
+model ActivityEvent {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  description String
+  contactId   String?
+  dealId      String?
+  createdAt   DateTime     @default(now())
+
+  contact Contact? @relation(fields: [contactId], references: [id])
+  deal    Deal?    @relation(fields: [dealId], references: [id])
+}
+
+model BusinessResource {
+  id        String           @id @default(cuid())
+  title     String
+  category  ResourceCategory @default(OTHER)
+  content   String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+/// Singleton row (only one ever exists) — presence + completedAt drive the
+/// first-run setup wizard gate in src/app/(app)/layout.tsx.
+model BusinessProfile {
+  id               String    @id @default(cuid())
+  name             String
+  description      String?
+  /// "From" name/address for mass-mail sends via Resend. Populated once the
+  /// business owner verifies their own domain in their own Resend account —
+  /// falls back to Resend's shared test sender until then.
+  emailFromName    String?
+  emailFromAddress String?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+/// A public lead-capture form a business shares with a link. Fields are a
+/// fixed, curated set (not a drag-drop builder) — kept simple on purpose.
+model Form {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  description    String?
+  collectPhone   Boolean  @default(true)
+  collectMessage Boolean  @default(true)
+  /// JSON array of extra fields: [{ "label": string }]
+  customFields   String   @default("[]")
+  /// Tag applied to the Contact created/updated from a submission, so
+  /// campaigns can segment recipients by which form they came through.
+  tagOnSubmit    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  submissions FormSubmission[]
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String
+  contactId String?
+  /// JSON snapshot of the raw submitted values, including any custom fields
+  /// that don't map onto a Contact column.
+  data      String
+  createdAt DateTime @default(now())
+
+  form    Form     @relation(fields: [formId], references: [id])
+  contact Contact? @relation(fields: [contactId], references: [id])
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+model Campaign {
+  id           String         @id @default(cuid())
+  name         String
+  subject      String
+  body         String
+  status       CampaignStatus @default(DRAFT)
+  templateId   String?
+  /// Simple segmentation: send to Contacts matching this tag and/or status
+  /// (both optional; unset means "no filter on that dimension").
+  filterTag    String?
+  filterStatus ContactStatus?
+  scheduledAt  DateTime?
+  sentAt       DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  template   EmailTemplate?      @relation(fields: [templateId], references: [id])
+  recipients CampaignRecipient[]
+}
+
+model CampaignRecipient {
+  id            String              @id @default(cuid())
+  campaignId    String
+  contactId     String
+  /// Opaque token embedded in the tracking pixel/click-redirect URLs so opens
+  /// and clicks can be attributed without exposing the recipient's identity.
+  trackingToken String              @unique @default(cuid())
+  status        RecipientSendStatus @default(PENDING)
+  errorMessage  String?
+  sentAt        DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  contact  Contact  @relation(fields: [contactId], references: [id])
+
+  @@unique([campaignId, contactId])
+}
+
+model Conversation {
+  id                 String              @id @default(cuid())
+  contactId          String
+  channel            ConversationChannel @default(WHATSAPP)
+  status             ConversationStatus  @default(AI_HANDLING)
+  assignedAgentId    String?
+  channelConnectionId String?
+  externalThreadId   String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  contact           Contact            @relation(fields: [contactId], references: [id])
+  assignedAgent     Agent?             @relation(fields: [assignedAgentId], references: [id])
+  channelConnection ChannelConnection? @relation(fields: [channelConnectionId], references: [id])
+  messages          Message[]
+
+  @@index([channelConnectionId, externalThreadId])
+}
+
+model ChannelConnection {
+  id                 String                  @id @default(cuid())
+  channel            ConversationChannel     @unique
+  status             ChannelConnectionStatus @default(DISCONNECTED)
+  displayName        String?
+  phoneNumberId      String?
+  wabaId             String?
+  pageId             String?
+  accessToken        String?
+  webhookVerifyToken String
+  lastErrorMessage   String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  conversations  Conversation[]
+  commentReplies CommentReply[]
+}
+
+model CommentReply {
+  id                  String              @id @default(cuid())
+  channelConnectionId String
+  channel             ConversationChannel
+  externalCommentId   String              @unique
+  postId              String?
+  commenterName       String?
+  commentText         String
+  replyText           String
+  createdAt           DateTime            @default(now())
+
+  channelConnection ChannelConnection @relation(fields: [channelConnectionId], references: [id])
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  conversationId String
+  sender         MessageSender
+  body           String
+  createdAt      DateTime      @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+}
