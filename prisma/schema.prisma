@@ -128,6 +128,7 @@ model Contact {
   conversations      Conversation[]
   formSubmissions    FormSubmission[]
   campaignRecipients CampaignRecipient[]
+  tikTokLeads        TikTokLead[]
 }
 
 model Stage {
@@ -361,6 +362,42 @@ model CommentReply {
   createdAt           DateTime            @default(now())
 
   channelConnection ChannelConnection @relation(fields: [channelConnectionId], references: [id])
+}
+
+/// Singleton row (upsert-on-first-access, same pattern as ChannelConnection
+/// rows) — a business's TikTok Ads advertiser authorization, used only to
+/// pull Lead Generation ad leads (TikTok has no self-serve DM/messaging API,
+/// so this is deliberately ads-only, not a conversation channel).
+model TikTokAdsConnection {
+  id               String                  @id @default(cuid())
+  status           ChannelConnectionStatus @default(DISCONNECTED)
+  displayName      String?
+  advertiserId     String?
+  accessToken      String?
+  lastSyncedAt     DateTime?
+  lastErrorMessage String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  leads TikTokLead[]
+}
+
+/// Raw record of an ingested TikTok lead, keyed by TikTok's own lead id so
+/// re-polling the same lead (task/download can return leads already seen)
+/// doesn't create duplicate Contacts or re-trigger AI follow-up.
+model TikTokLead {
+  id               String   @id @default(cuid())
+  connectionId     String
+  externalLeadId   String   @unique
+  contactId        String?
+  /// JSON snapshot of the raw lead payload (name/phone/email/custom
+  /// question answers) — field names aren't fully documented by TikTok, so
+  /// this is kept verbatim for debugging until the real shape is confirmed.
+  data             String
+  createdAt        DateTime @default(now())
+
+  connection TikTokAdsConnection @relation(fields: [connectionId], references: [id])
+  contact    Contact?            @relation(fields: [contactId], references: [id])
 }
 
 model Message {

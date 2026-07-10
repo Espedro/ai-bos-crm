@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
 import { getChannelConnections } from "@/lib/actions/channels";
 import { getBusinessProfile, updateEmailSettings } from "@/lib/actions/business";
+import { getTikTokConnection } from "@/lib/actions/tiktok";
 import { WhatsAppConnectionCard } from "@/components/whatsapp-connection-card";
 import { MetaMessagingConnectionCard } from "@/components/meta-messaging-connection-card";
+import { TikTokAdsConnectionCard } from "@/components/tiktok-ads-connection-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,13 +13,14 @@ import { Button } from "@/components/ui/button";
 export default async function ChannelsSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fb_connected?: string; fb_error?: string }>;
+  searchParams: Promise<{ fb_connected?: string; fb_error?: string; tiktok_error?: string }>;
 }) {
-  const [connections, hdrs, params, profile] = await Promise.all([
+  const [connections, hdrs, params, profile, tiktok] = await Promise.all([
     getChannelConnections(),
     headers(),
     searchParams,
     getBusinessProfile(),
+    getTikTokConnection(),
   ]);
   const [whatsapp, facebook, instagram] = connections;
 
@@ -45,6 +48,11 @@ export default async function ChannelsSettingsPage({
           Facebook connection failed: {params.fb_error}
         </div>
       )}
+      {params.tiktok_error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          TikTok connection failed: {params.tiktok_error}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <WhatsAppConnectionCard
@@ -68,6 +76,10 @@ export default async function ChannelsSettingsPage({
           connection={instagram}
           webhookUrl={`${origin}/api/webhooks/instagram/${instagram.id}`}
         />
+      </div>
+
+      <div className="max-w-md">
+        <TikTokAdsConnectionCard connection={tiktok} />
       </div>
 
       <Card className="max-w-md">

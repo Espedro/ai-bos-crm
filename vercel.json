@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/send-scheduled-campaigns",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/sync-tiktok-leads",
+      "schedule": "0 14 * * *"
     }
   ]
 }
