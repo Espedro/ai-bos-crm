@@ -1,9 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { getDealsByStage } from "@/lib/actions/deals";
+import { getLeadTrend } from "@/lib/actions/dashboard";
+import { getRecentActivity } from "@/lib/activity";
 import { Card, CardContent } from "@/components/ui/card";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { cn } from "@/lib/utils";
 import { stageDotColor } from "@/lib/stage-colors";
+import { PipelineValueChart } from "@/components/dashboard/pipeline-value-chart";
+import { LeadTrendSparkline } from "@/components/dashboard/lead-trend-sparkline";
+import { RecentActivity } from "@/components/dashboard/recent-activity";
 import {
   UserPlus,
   Handshake,
@@ -25,12 +30,14 @@ function StatCard({
   icon: Icon,
   trend,
   alert = false,
+  chart,
 }: {
   label: string;
   value: number | string;
   icon: LucideIcon;
   trend: { direction: "up" | "down"; pct: number; caption: string } | { caption: string };
   alert?: boolean;
+  chart?: React.ReactNode;
 }) {
   return (
     <Card>
@@ -41,7 +48,7 @@ function StatCard({
             className={cn(
               "flex size-9 shrink-0 items-center justify-center rounded-lg",
               alert
-                ? "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                ? "bg-[var(--status-critical)]/12 text-[var(--status-critical)]"
                 : "bg-muted text-muted-foreground"
             )}
           >
@@ -53,25 +60,32 @@ function StatCard({
           {"direction" in trend && (
             <>
               {trend.direction === "up" ? (
-                <TrendingUp className="size-4 text-emerald-600" />
+                <TrendingUp className="size-4 text-[var(--status-good)]" />
               ) : (
-                <TrendingDown className="size-4 text-rose-600" />
+                <TrendingDown className="size-4 text-[var(--status-critical)]" />
               )}
-              <span className={trend.direction === "up" ? "text-emerald-600" : "text-rose-600"}>
+              <span
+                className={
+                  trend.direction === "up"
+                    ? "text-[var(--status-good)]"
+                    : "text-[var(--status-critical)]"
+                }
+              >
                 {Math.abs(trend.pct)}%
               </span>
             </>
           )}
           <span className="text-muted-foreground">{trend.caption}</span>
         </div>
+        {chart && <div className="-mx-1 mt-1">{chart}</div>}
       </CardContent>
     </Card>
   );
 }
 
 const stageBadgeClasses: Record<string, string> = {
-  won: "bg-emerald-500 text-white",
-  lost: "bg-rose-500 text-white",
+  won: "bg-[var(--status-good)] text-white",
+  lost: "bg-[var(--status-critical)] text-white",
 };
 
 export default async function DashboardPage() {
@@ -90,6 +104,8 @@ export default async function DashboardPage() {
     leadsPrevWeek,
     dealsThisWeek,
     dealsPrevWeek,
+    leadTrend,
+    recentActivity,
   ] = await Promise.all([
     prisma.contact.count({ where: { status: "LEAD" } }),
     getDealsByStage(),
@@ -102,10 +118,23 @@ export default async function DashboardPage() {
     }),
     prisma.deal.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
     prisma.deal.count({ where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
+    getLeadTrend(14),
+    getRecentActivity(8),
   ]);
 
   const openStages = stages.filter((s) => s.name !== "Won" && s.name !== "Lost");
   const openDeals = openStages.reduce((sum, s) => sum + s.deals.length, 0);
+  const pipelineValue = openStages.reduce(
+    (sum, s) => sum + s.deals.reduce((dSum, d) => dSum + Number(d.value), 0),
+    0
+  );
+
+  const stageValueData = stages.map((stage) => ({
+    id: stage.id,
+    name: stage.name,
+    value: stage.deals.reduce((sum, d) => sum + Number(d.value), 0),
+    count: stage.deals.length,
+  }));
 
   const leadsTrendPct = weekOverWeek(leadsThisWeek, leadsPrevWeek);
   const dealsTrendPct = weekOverWeek(dealsThisWeek, dealsPrevWeek);
@@ -133,6 +162,7 @@ export default async function DashboardPage() {
                   caption: "vs last week",
                 }
           }
+          chart={<LeadTrendSparkline data={leadTrend} />}
         />
         <StatCard
           label="Open Deals"
@@ -170,7 +200,12 @@ export default async function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-xl font-bold">Pipeline Overview</h2>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-xl font-bold">Pipeline Overview</h2>
+          <p className="text-sm text-muted-foreground">
+            ${pipelineValue.toLocaleString()} open pipeline
+          </p>
+        </div>
         <Card className="py-0">
           <div className="overflow-x-auto">
             <div className="flex divide-x">
@@ -193,43 +228,55 @@ export default async function DashboardPage() {
               })}
             </div>
           </div>
+          <div className="border-t px-5 py-4">
+            <PipelineValueChart data={stageValueData} />
+          </div>
         </Card>
       </div>
 
-      <div>
-        <h2 className="mb-3 text-xl font-bold">Recent Deals</h2>
-        <Card className="py-0">
-          <div className="divide-y">
-            {recentDeals.map((deal) => (
-              <div key={deal.id} className="flex items-center gap-4 px-5 py-4">
-                <EntityAvatar
-                  name={`${deal.contact.firstName} ${deal.contact.lastName}`}
-                  size="sm"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{deal.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {deal.contact.firstName} {deal.contact.lastName}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div>
+          <h2 className="mb-3 text-xl font-bold">Recent Deals</h2>
+          <Card className="py-0">
+            <div className="divide-y">
+              {recentDeals.map((deal) => (
+                <div key={deal.id} className="flex items-center gap-4 px-5 py-4">
+                  <EntityAvatar
+                    name={`${deal.contact.firstName} ${deal.contact.lastName}`}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{deal.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {deal.contact.firstName} {deal.contact.lastName}
+                    </p>
+                  </div>
+                  <p className="hidden shrink-0 text-sm font-semibold tabular-nums sm:block">
+                    ${Number(deal.value).toLocaleString()}
                   </p>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-3 py-1 text-xs font-bold",
+                      stageBadgeClasses[deal.stageName.toLowerCase()] ?? "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    {deal.stageName}
+                  </span>
                 </div>
-                <p className="hidden shrink-0 text-sm font-semibold tabular-nums sm:block">
-                  ${Number(deal.value).toLocaleString()}
-                </p>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-3 py-1 text-xs font-bold",
-                    stageBadgeClasses[deal.stageName.toLowerCase()] ?? "bg-primary text-primary-foreground"
-                  )}
-                >
-                  {deal.stageName}
-                </span>
-              </div>
-            ))}
-            {recentDeals.length === 0 && (
-              <p className="px-5 py-6 text-sm text-muted-foreground">No deals yet.</p>
-            )}
-          </div>
-        </Card>
+              ))}
+              {recentDeals.length === 0 && (
+                <p className="px-5 py-6 text-sm text-muted-foreground">No deals yet.</p>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-xl font-bold">Recent Activity</h2>
+          <Card className="py-0">
+            <RecentActivity events={recentActivity} />
+          </Card>
+        </div>
       </div>
     </div>
   );

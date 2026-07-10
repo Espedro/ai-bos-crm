@@ -9,7 +9,20 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --color-channel-whatsapp: var(--channel-whatsapp);
+  --color-channel-whatsapp-foreground: var(--channel-whatsapp-foreground);
+  --color-channel-facebook: var(--channel-facebook);
+  --color-channel-facebook-foreground: var(--channel-facebook-foreground);
+  --color-channel-instagram: var(--channel-instagram);
+  --color-channel-instagram-foreground: var(--channel-instagram-foreground);
+  --color-channel-email: var(--channel-email);
+  --color-channel-email-foreground: var(--channel-email-foreground);
+  --color-channel-webchat: var(--channel-webchat);
+  --color-channel-webchat-foreground: var(--channel-webchat-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -18,11 +31,16 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-serious: var(--status-serious);
+  --color-status-critical: var(--status-critical);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -67,11 +85,25 @@
   --border: oklch(0.89 0.004 275);
   --input: oklch(0.89 0.004 275);
   --ring: oklch(0.62 0.19 258);
-  --chart-1: oklch(0.62 0.19 258);
-  --chart-2: oklch(0.68 0.13 175);
-  --chart-3: oklch(0.83 0.15 85);
-  --chart-4: oklch(0.75 0.18 80);
-  --chart-5: oklch(0.66 0.2 22);
+
+  /* Categorical chart palette — six fixed-order hues validated for CVD
+     separation (worst adjacent pair ΔE 24.2) and contrast against --card
+     via the dataviz skill's validate_palette.js. Assign in this order,
+     never cycled/reordered — the order itself is the safety mechanism. */
+  --chart-1: #2a78d6;
+  --chart-2: #1baf7a;
+  --chart-3: #eda100;
+  --chart-4: #008300;
+  --chart-5: #4a3aa7;
+  --chart-6: #e34948;
+
+  /* Status palette — reserved for state (Won/Lost, escalation severity),
+     never reused as a categorical series color. */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
   --radius: 0.625rem;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.25 0.008 275);
@@ -81,6 +113,28 @@
   --sidebar-accent-foreground: oklch(0.25 0.008 275);
   --sidebar-border: oklch(0.92 0.004 275);
   --sidebar-ring: oklch(0.62 0.19 258);
+
+  /* Soft, diffuse shadows tuned against the near-white violet-tinted
+     background — cool-tinted rather than pure black so they blend rather
+     than sitting on top like a default browser shadow. */
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 275 / 0.06);
+  --shadow-md: 0 4px 10px -2px oklch(0.2 0.02 275 / 0.08), 0 2px 4px -2px oklch(0.2 0.02 275 / 0.06);
+  --shadow-lg: 0 16px 32px -8px oklch(0.2 0.02 275 / 0.14), 0 4px 8px -4px oklch(0.2 0.02 275 / 0.08);
+
+  /* Per-channel accent colors, same pale-tint/saturated-foreground pattern
+     as --accent/--accent-foreground above, so channel badges stay on the
+     token system instead of hardcoded Tailwind palette classes that break
+     in dark mode. */
+  --channel-whatsapp: oklch(0.93 0.05 155);
+  --channel-whatsapp-foreground: oklch(0.45 0.13 155);
+  --channel-facebook: oklch(0.93 0.045 255);
+  --channel-facebook-foreground: oklch(0.5 0.17 255);
+  --channel-instagram: oklch(0.93 0.045 340);
+  --channel-instagram-foreground: oklch(0.5 0.16 340);
+  --channel-email: oklch(0.94 0.006 275);
+  --channel-email-foreground: oklch(0.42 0.008 275);
+  --channel-webchat: oklch(0.93 0.045 230);
+  --channel-webchat-foreground: oklch(0.48 0.14 230);
 }
 
 .dark {
@@ -102,11 +156,19 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.68 0.17 258);
-  --chart-1: oklch(0.68 0.17 258);
-  --chart-2: oklch(0.7 0.13 175);
-  --chart-3: oklch(0.8 0.14 85);
-  --chart-4: oklch(0.75 0.17 80);
-  --chart-5: oklch(0.7 0.18 22);
+
+  --chart-1: #3987e5;
+  --chart-2: #199e70;
+  --chart-3: #c98500;
+  --chart-4: #008300;
+  --chart-5: #9085e9;
+  --chart-6: #e66767;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
   --sidebar: oklch(0.19 0.014 275);
   --sidebar-foreground: oklch(0.92 0.006 275);
   --sidebar-primary: oklch(0.68 0.17 258);
@@ -115,6 +177,24 @@
   --sidebar-accent-foreground: oklch(0.96 0.006 275);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.68 0.17 258);
+
+  /* Dark-mode shadows lean on deeper, tighter black rather than trying to
+     glow — a literal light shadow reads as nothing against a dark surface,
+     so these are more opaque but stay short/close to keep depth subtle. */
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 10px -2px oklch(0 0 0 / 0.4), 0 2px 4px -2px oklch(0 0 0 / 0.3);
+  --shadow-lg: 0 16px 32px -8px oklch(0 0 0 / 0.55), 0 4px 8px -4px oklch(0 0 0 / 0.35);
+
+  --channel-whatsapp: oklch(0.3 0.06 155);
+  --channel-whatsapp-foreground: oklch(0.78 0.14 155);
+  --channel-facebook: oklch(0.3 0.055 255);
+  --channel-facebook-foreground: oklch(0.78 0.15 255);
+  --channel-instagram: oklch(0.3 0.055 340);
+  --channel-instagram-foreground: oklch(0.78 0.14 340);
+  --channel-email: oklch(0.28 0.012 275);
+  --channel-email-foreground: oklch(0.78 0.012 275);
+  --channel-webchat: oklch(0.3 0.055 230);
+  --channel-webchat-foreground: oklch(0.78 0.13 230);
 }
 
 @layer base {
@@ -126,5 +206,13 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
   }
 }

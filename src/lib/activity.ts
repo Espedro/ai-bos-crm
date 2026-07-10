@@ -9,3 +9,11 @@ export function logActivity(params: {
 }) {
   return prisma.activityEvent.create({ data: params });
 }
+
+export function getRecentActivity(take = 8) {
+  return prisma.activityEvent.findMany({
+    orderBy: { createdAt: "desc" },
+    take,
+    include: { contact: true, deal: true },
+  });
+}

@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { setConversationStatus } from "@/lib/actions/conversations";
+import { cn } from "@/lib/utils";
 
 export function ConversationStatusControls({
   conversationId,
@@ -20,6 +21,7 @@ export function ConversationStatusControls({
           variant="outline"
           size="sm"
           disabled={isPending}
+          className="border-[var(--status-warning)]/40 text-[var(--status-serious)] hover:bg-[var(--status-warning)]/10"
           onClick={() => startTransition(() => setConversationStatus(conversationId, "ESCALATED"))}
         >
           Escalate to Human
@@ -27,9 +29,11 @@ export function ConversationStatusControls({
       )}
       {(status === "ESCALATED" || status === "CLOSED") && (
         <Button
-          variant="outline"
           size="sm"
           disabled={isPending}
+          className={cn(
+            "bg-[var(--status-good)] text-white hover:bg-[var(--status-good)]/90"
+          )}
           onClick={() => startTransition(() => setConversationStatus(conversationId, "AI_HANDLING"))}
         >
           Resume AI

@@ -44,7 +44,7 @@ const conversationLinks = [
     href: "/inbox?channel=WHATSAPP",
     label: "WhatsApp",
     icon: MessageCircle,
-    iconClasses: "text-emerald-500",
+    iconClasses: "text-channel-whatsapp-foreground",
     isActive: (pathname: string, channel: string | null) =>
       pathname === "/inbox" && channel === "WHATSAPP",
   },
@@ -52,7 +52,7 @@ const conversationLinks = [
     href: "/inbox?channel=FACEBOOK",
     label: "Messenger",
     icon: MessageSquare,
-    iconClasses: "text-blue-500",
+    iconClasses: "text-channel-facebook-foreground",
     isActive: (pathname: string, channel: string | null) =>
       pathname === "/inbox" && channel === "FACEBOOK",
   },
@@ -60,7 +60,7 @@ const conversationLinks = [
     href: "/inbox?channel=INSTAGRAM",
     label: "Instagram",
     icon: Camera,
-    iconClasses: "text-fuchsia-500",
+    iconClasses: "text-channel-instagram-foreground",
     isActive: (pathname: string, channel: string | null) =>
       pathname === "/inbox" && channel === "INSTAGRAM",
   },
