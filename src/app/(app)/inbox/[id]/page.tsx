@@ -12,7 +12,7 @@ import { ConversationListPane } from "@/components/conversation-list-pane";
 import { parseChannelParam } from "@/lib/channel-ui";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
-import { Bot } from "lucide-react";
+import { Bot, ArrowLeft } from "lucide-react";
 import type { Message } from "@prisma/client";
 
 const bubbleStyles: Record<string, string> = {
@@ -89,18 +89,27 @@ export default async function ConversationDetailPage({
   const contactName = `${conversation.contact.firstName} ${conversation.contact.lastName}`;
   const thread = buildThread(conversation.messages);
 
+  const backHref = `/inbox${channel ? `?channel=${channel}` : ""}`;
+
   return (
-    <InboxShell list={<ConversationListPane channel={channel} activeId={id} />}>
-      <div className="flex shrink-0 items-center justify-between border-b px-5 py-4">
-        <div className="flex items-center gap-3">
+    <InboxShell list={<ConversationListPane channel={channel} activeId={id} />} hasActive>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-b px-3 py-3 sm:px-5 sm:py-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Link
+            href={backHref}
+            aria-label="Back to conversations"
+            className="-ml-1 flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground sm:hidden"
+          >
+            <ArrowLeft className="size-4.5" />
+          </Link>
           <EntityAvatar name={contactName} />
-          <div>
-            <h1 className="text-base font-semibold tracking-tight">
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold tracking-tight">
               <Link href={`/contacts/${conversation.contact.id}`} className="hover:underline">
                 {contactName}
               </Link>
             </h1>
-            <div className="mt-1 flex items-center gap-1.5">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <Badge variant="outline">{conversation.channel}</Badge>
               <Badge variant="secondary">{conversation.status.replace("_", " ")}</Badge>
               <span
@@ -123,7 +132,7 @@ export default async function ConversationDetailPage({
         <ConversationStatusControls conversationId={conversation.id} status={conversation.status} />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-5 py-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4 sm:px-5">
         {thread.map((item) => {
           if (item.type === "date") {
             return (
@@ -152,7 +161,12 @@ export default async function ConversationDetailPage({
             <div key={item.key} className={cn("mt-3 flex", isCustomer ? "justify-start" : "justify-end")}>
               <div className={cn("flex items-end gap-2", !isCustomer && "flex-row-reverse")}>
                 {avatar}
-                <div className={cn("flex max-w-[420px] flex-col gap-0.5", !isCustomer && "items-end")}>
+                <div
+                  className={cn(
+                    "flex max-w-[78vw] flex-col gap-0.5 sm:max-w-[420px]",
+                    !isCustomer && "items-end"
+                  )}
+                >
                   <p className="px-1 text-xs font-medium text-muted-foreground">
                     {senderLabels[sender]} · {format(messages[0].createdAt, "p")}
                   </p>
@@ -181,7 +195,7 @@ export default async function ConversationDetailPage({
         )}
       </div>
 
-      <div className="shrink-0 space-y-3 border-t px-5 py-4">
+      <div className="shrink-0 space-y-3 border-t px-3 py-3 sm:px-5 sm:py-4">
         <CustomerMessageForm conversationId={conversation.id} />
         {conversation.status === "ESCALATED" && (
           <AgentMessageForm conversationId={conversation.id} agents={agents} />

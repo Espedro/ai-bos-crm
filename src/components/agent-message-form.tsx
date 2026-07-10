@@ -35,11 +35,11 @@ export function AgentMessageForm({
       className="space-y-2 rounded-lg border bg-muted/30 p-3"
     >
       <p className="text-xs font-medium text-muted-foreground">Reply as agent</p>
-      <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <Textarea name="body" placeholder="Type your reply..." required rows={2} className="flex-1" />
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:w-[160px]">
           <Select name="agentId">
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="You" />
             </SelectTrigger>
             <SelectContent>
@@ -50,7 +50,9 @@ export function AgentMessageForm({
               ))}
             </SelectContent>
           </Select>
-          <Button type="submit">Send as Agent</Button>
+          <Button type="submit" className="w-full">
+            Send as Agent
+          </Button>
         </div>
       </div>
     </form>

@@ -22,6 +22,8 @@ import {
   Search,
   ClipboardList,
   Send,
+  Menu,
+  X,
 } from "lucide-react";
 
 const topLinks = [
@@ -86,17 +88,54 @@ export function Sidebar() {
   const conversationsActive =
     pathname === "/inbox" || pathname.startsWith("/comments");
   const [isOpen, setIsOpen] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const expanded = isOpen || conversationsActive;
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="px-6 py-6">
-        <p className="text-xl leading-tight font-extrabold tracking-tight">
+    <>
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground lg:hidden">
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen(true)}
+          aria-label="Open menu"
+          className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
+          <Menu className="size-5" />
+        </button>
+        <p className="text-lg leading-tight font-extrabold tracking-tight">
           <span className="text-primary">AI</span> BOS
         </p>
       </div>
 
-      <button
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-60 shrink-0 -translate-x-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 lg:static lg:translate-x-0",
+          isMobileOpen && "translate-x-0"
+        )}
+      >
+        <div className="flex items-center justify-between px-6 py-6">
+          <p className="text-xl leading-tight font-extrabold tracking-tight">
+            <span className="text-primary">AI</span> BOS
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsMobileOpen(false)}
+            aria-label="Close menu"
+            className="flex size-7 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:hidden"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <button
         type="button"
         onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_PALETTE_EVENT))}
         className="mx-3 mb-2 flex items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/60 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent"
@@ -108,7 +147,12 @@ export function Sidebar() {
         </kbd>
       </button>
 
-      <nav className="flex-1 space-y-0.5 px-3 py-2">
+      <nav
+        className="flex-1 space-y-0.5 px-3 py-2"
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a")) setIsMobileOpen(false);
+        }}
+      >
         {topLinks.map((link) => {
           const active =
             link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -179,10 +223,11 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="flex items-center justify-between border-t border-sidebar-border px-6 py-4">
-        <p className="text-xs text-muted-foreground">One Platform. Every Conversation.</p>
-        <ThemeToggle className="-mr-1" />
-      </div>
-    </aside>
+        <div className="flex items-center justify-between border-t border-sidebar-border px-6 py-4">
+          <p className="text-xs text-muted-foreground">One Platform. Every Conversation.</p>
+          <ThemeToggle className="-mr-1" />
+        </div>
+      </aside>
+    </>
   );
 }

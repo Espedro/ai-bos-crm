@@ -16,7 +16,7 @@ export function CustomerMessageForm({ conversationId }: { conversationId: string
         formRef.current?.reset();
         await sendCustomerMessage(conversationId, body);
       }}
-      className="flex items-end gap-2"
+      className="flex flex-col gap-2 sm:flex-row sm:items-end"
     >
       <Textarea
         name="body"
@@ -25,7 +25,9 @@ export function CustomerMessageForm({ conversationId }: { conversationId: string
         rows={2}
         className="flex-1"
       />
-      <Button type="submit">Send as Customer</Button>
+      <Button type="submit" className="w-full sm:w-auto">
+        Send as Customer
+      </Button>
     </form>
   );
 }

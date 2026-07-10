@@ -104,7 +104,7 @@
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
 
-  --radius: 0.625rem;
+  --radius: 0px;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.25 0.008 275);
   --sidebar-primary: oklch(0.62 0.19 258);

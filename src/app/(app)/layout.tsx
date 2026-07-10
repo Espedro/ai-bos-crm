@@ -14,9 +14,9 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row">
       <Sidebar />
-      <main className="min-h-screen flex-1 overflow-x-hidden px-8 py-8">
+      <main className="min-h-screen flex-1 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <div className="mx-auto w-full max-w-6xl">{children}</div>
       </main>
       <CommandPalette />
