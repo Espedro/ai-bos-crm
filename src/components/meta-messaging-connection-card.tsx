@@ -110,7 +110,12 @@ export function MetaMessagingConnectionCard({
                 type="button"
                 variant="outline"
                 disabled={isPending}
-                onClick={() => startTransition(() => disconnectChannel(channel))}
+                onClick={() => {
+                  if (!window.confirm(`Disconnect ${title}? Customers won't get AI replies on this channel until you reconnect it.`)) {
+                    return;
+                  }
+                  startTransition(() => disconnectChannel(channel));
+                }}
               >
                 Disconnect
               </Button>

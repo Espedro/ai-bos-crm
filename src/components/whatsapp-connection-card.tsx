@@ -104,7 +104,12 @@ export function WhatsAppConnectionCard({
                 type="button"
                 variant="outline"
                 disabled={isPending}
-                onClick={() => startTransition(() => disconnectChannel("WHATSAPP"))}
+                onClick={() => {
+                  if (!window.confirm("Disconnect WhatsApp? Customers won't get AI replies on this channel until you reconnect it.")) {
+                    return;
+                  }
+                  startTransition(() => disconnectChannel("WHATSAPP"));
+                }}
               >
                 Disconnect
               </Button>
