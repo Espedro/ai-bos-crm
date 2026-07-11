@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import { LeadScoreBar } from "@/components/lead-score-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Timeline } from "@/components/timeline";
 import { NoteForm } from "@/components/note-form";
@@ -52,7 +53,7 @@ export default async function ContactDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={statusVariant[contact.status]}>{contact.status}</Badge>
-          <Badge variant="outline">Score: {contact.leadScore}</Badge>
+          <LeadScoreBar score={contact.leadScore} />
           <form action={startConversation.bind(null, contact.id)}>
             <Button type="submit" size="sm">
               Start Conversation

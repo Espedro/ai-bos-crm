@@ -89,6 +89,10 @@ model Agent {
   /// signed in yet, so the login form treats the submitted password as the
   /// one to set rather than one to verify.
   passwordHash String?
+  /// Single-use token emailed for "forgot password" — cleared on use or
+  /// once expired (resetTokenExpiresAt).
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
   /// ADMIN sees financials and manages Team/Channels/Campaigns/deletions;
   /// MEMBER handles day-to-day contacts/deals/conversations only. Defaults
   /// to ADMIN so existing agents keep full access when this rolls out.
