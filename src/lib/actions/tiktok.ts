@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdminActionIfOnboarded } from "@/lib/current-agent";
 
 /**
  * Ensures a TikTokAdsConnection row exists (upsert-on-first-access, same
@@ -15,6 +16,7 @@ export async function getTikTokConnection() {
 }
 
 export async function disconnectTikTok() {
+  await requireAdminActionIfOnboarded();
   const connection = await prisma.tikTokAdsConnection.findFirst();
   if (!connection) return;
   await prisma.tikTokAdsConnection.update({

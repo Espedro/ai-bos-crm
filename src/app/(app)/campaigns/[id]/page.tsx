@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCampaign, countMatchingContacts } from "@/lib/actions/campaigns";
+import { requireAdminPage } from "@/lib/current-agent";
 import { CampaignActions } from "@/components/campaign-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,8 @@ export default async function CampaignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminPage();
+
   const { id } = await params;
   const campaign = await getCampaign(id);
   if (!campaign) notFound();

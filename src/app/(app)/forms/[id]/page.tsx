@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getForm } from "@/lib/actions/forms";
+import { getCurrentAgent } from "@/lib/current-agent";
 import { CopyableField } from "@/components/copyable-field";
 import { DeleteFormButton } from "@/components/delete-form-button";
 import { FormCoverImageEditor } from "@/components/form-cover-image-editor";
@@ -13,8 +14,9 @@ export default async function FormDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [form, hdrs] = await Promise.all([getForm(id), headers()]);
+  const [form, hdrs, agent] = await Promise.all([getForm(id), headers(), getCurrentAgent()]);
   if (!form) notFound();
+  const isAdmin = agent.role === "ADMIN";
 
   const host = hdrs.get("host") ?? "localhost:3000";
   const protocol = host.startsWith("localhost") ? "http" : "https";
@@ -29,7 +31,7 @@ export default async function FormDetailPage({
             <p className="text-sm text-muted-foreground">{form.description}</p>
           )}
         </div>
-        <DeleteFormButton id={form.id} redirectTo="/forms" />
+        {isAdmin && <DeleteFormButton id={form.id} redirectTo="/forms" />}
       </div>
 
       <Card>

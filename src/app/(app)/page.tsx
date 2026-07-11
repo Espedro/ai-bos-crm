@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getDealsByStage } from "@/lib/actions/deals";
 import { getLeadTrend } from "@/lib/actions/dashboard";
 import { getRecentActivity } from "@/lib/activity";
+import { getCurrentAgent } from "@/lib/current-agent";
 import { Card, CardContent } from "@/components/ui/card";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,9 @@ const stageBadgeClasses: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
+  const agent = await getCurrentAgent();
+  const isAdmin = agent.role === "ADMIN";
+
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -202,9 +206,11 @@ export default async function DashboardPage() {
       <div>
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="text-xl font-bold">Pipeline Overview</h2>
-          <p className="text-sm text-muted-foreground">
-            ${pipelineValue.toLocaleString()} open pipeline
-          </p>
+          {isAdmin && (
+            <p className="text-sm text-muted-foreground">
+              ${pipelineValue.toLocaleString()} open pipeline
+            </p>
+          )}
         </div>
         <Card className="py-0">
           <div className="overflow-x-auto">
@@ -220,7 +226,7 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                     <p className="text-xl font-bold tabular-nums">{stage.deals.length}</p>
-                    {total > 0 && (
+                    {isAdmin && total > 0 && (
                       <p className="text-xs text-muted-foreground">${total.toLocaleString()}</p>
                     )}
                   </div>
@@ -228,9 +234,11 @@ export default async function DashboardPage() {
               })}
             </div>
           </div>
-          <div className="border-t px-5 py-4">
-            <PipelineValueChart data={stageValueData} />
-          </div>
+          {isAdmin && (
+            <div className="border-t px-5 py-4">
+              <PipelineValueChart data={stageValueData} />
+            </div>
+          )}
         </Card>
       </div>
 
@@ -251,9 +259,11 @@ export default async function DashboardPage() {
                       {deal.contact.firstName} {deal.contact.lastName}
                     </p>
                   </div>
-                  <p className="hidden shrink-0 text-sm font-semibold tabular-nums sm:block">
-                    ${Number(deal.value).toLocaleString()}
-                  </p>
+                  {isAdmin && (
+                    <p className="hidden shrink-0 text-sm font-semibold tabular-nums sm:block">
+                      ${Number(deal.value).toLocaleString()}
+                    </p>
+                  )}
                   <span
                     className={cn(
                       "shrink-0 rounded-full px-3 py-1 text-xs font-bold",

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminAction } from "@/lib/current-agent";
 
 export async function getCompanies() {
   return prisma.company.findMany({
@@ -41,6 +42,7 @@ export async function createCompany(formData: FormData) {
 }
 
 export async function deleteCompany(id: string) {
+  await requireAdminAction();
   await prisma.company.delete({ where: { id } });
   revalidatePath("/companies");
   redirect("/companies");

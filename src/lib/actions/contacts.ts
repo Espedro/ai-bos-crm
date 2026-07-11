@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminAction } from "@/lib/current-agent";
 import type { ContactStatus } from "@prisma/client";
 
 export async function getContacts() {
@@ -59,6 +60,7 @@ export async function createContact(formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
+  await requireAdminAction();
   await prisma.contact.delete({ where: { id } });
   revalidatePath("/contacts");
   redirect("/contacts");

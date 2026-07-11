@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminActionIfOnboarded } from "@/lib/current-agent";
 
 export async function getBusinessProfile() {
   return prisma.businessProfile.findFirst();
@@ -26,6 +27,7 @@ export async function createBusinessProfile(formData: FormData) {
 }
 
 export async function updateEmailSettings(formData: FormData) {
+  await requireAdminActionIfOnboarded();
   const profile = await prisma.businessProfile.findFirstOrThrow();
 
   await prisma.businessProfile.update({

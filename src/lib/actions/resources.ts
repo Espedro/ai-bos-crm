@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { ResourceCategory } from "@prisma/client";
 import { extractResourcesFromWebsiteText } from "@/lib/ai/websiteImport";
+import { requireAdminAction } from "@/lib/current-agent";
 
 function htmlToText(html: string): string {
   return html
@@ -88,6 +89,7 @@ export async function createResource(formData: FormData) {
 }
 
 export async function deleteResource(id: string) {
+  await requireAdminAction();
   await prisma.businessResource.delete({ where: { id } });
   revalidatePath("/resources");
 }

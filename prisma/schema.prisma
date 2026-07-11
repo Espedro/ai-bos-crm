@@ -76,15 +76,24 @@ enum RecipientSendStatus {
   FAILED
 }
 
+enum AgentRole {
+  ADMIN
+  MEMBER
+}
+
 model Agent {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   /// Set on first login (account "claim") — null means this agent hasn't
   /// signed in yet, so the login form treats the submitted password as the
   /// one to set rather than one to verify.
   passwordHash String?
-  createdAt DateTime @default(now())
+  /// ADMIN sees financials and manages Team/Channels/Campaigns/deletions;
+  /// MEMBER handles day-to-day contacts/deals/conversations only. Defaults
+  /// to ADMIN so existing agents keep full access when this rolls out.
+  role      AgentRole @default(ADMIN)
+  createdAt DateTime  @default(now())
 
   assignedContacts      Contact[]
   assignedDeals         Deal[]

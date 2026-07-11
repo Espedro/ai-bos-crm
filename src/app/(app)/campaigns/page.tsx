@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCampaigns } from "@/lib/actions/campaigns";
+import { requireAdminPage } from "@/lib/current-agent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
 };
 
 export default async function CampaignsPage() {
+  await requireAdminPage();
   const campaigns = await getCampaigns();
 
   return (

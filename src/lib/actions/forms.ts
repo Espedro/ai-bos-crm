@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminAction } from "@/lib/current-agent";
 
 const MAX_COVER_IMAGE_BYTES = 2 * 1024 * 1024;
 
@@ -84,6 +85,7 @@ export async function createForm(formData: FormData) {
 }
 
 export async function deleteForm(id: string) {
+  await requireAdminAction();
   await prisma.form.delete({ where: { id } });
   revalidatePath("/forms");
 }

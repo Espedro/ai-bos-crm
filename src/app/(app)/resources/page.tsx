@@ -1,4 +1,5 @@
 import { getResources } from "@/lib/actions/resources";
+import { getCurrentAgent } from "@/lib/current-agent";
 import { NewResourceDialog } from "@/components/new-resource-dialog";
 import { ImportWebsiteDialog } from "@/components/import-website-dialog";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
@@ -6,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default async function ResourcesPage() {
-  const resources = await getResources();
+  const [agent, resources] = await Promise.all([getCurrentAgent(), getResources()]);
+  const isAdmin = agent.role === "ADMIN";
 
   return (
     <div className="space-y-6">
@@ -37,7 +39,7 @@ export default async function ResourcesPage() {
                     {resource.content}
                   </p>
                 </div>
-                <DeleteResourceButton id={resource.id} />
+                {isAdmin && <DeleteResourceButton id={resource.id} />}
               </div>
             </CardContent>
           </Card>

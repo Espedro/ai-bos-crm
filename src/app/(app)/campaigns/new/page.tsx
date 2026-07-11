@@ -1,4 +1,5 @@
 import { createCampaign } from "@/lib/actions/campaigns";
+import { requireAdminPage } from "@/lib/current-agent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function NewCampaignPage() {
+export default async function NewCampaignPage() {
+  await requireAdminPage();
+
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6">
       <div>

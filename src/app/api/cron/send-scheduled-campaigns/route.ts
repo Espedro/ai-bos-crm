@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendCampaign } from "@/lib/actions/campaigns";
+import { sendCampaignCore } from "@/lib/campaign-sender";
 
 /**
  * Polled by Vercel Cron (see vercel.json) to fire campaigns whose
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   for (const campaign of due) {
     try {
-      await sendCampaign(campaign.id);
+      await sendCampaignCore(campaign.id);
     } catch (error) {
       console.error(`Scheduled send failed for campaign ${campaign.id}:`, error);
       await prisma.campaign.update({

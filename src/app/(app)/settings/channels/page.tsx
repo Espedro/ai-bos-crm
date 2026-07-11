@@ -6,6 +6,7 @@ import { WhatsAppConnectionCard } from "@/components/whatsapp-connection-card";
 import { MetaMessagingConnectionCard } from "@/components/meta-messaging-connection-card";
 import { TikTokAdsConnectionCard } from "@/components/tiktok-ads-connection-card";
 import { SettingsNav } from "@/components/settings-nav";
+import { requireAdminPage } from "@/lib/current-agent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ export default async function ChannelsSettingsPage({
 }: {
   searchParams: Promise<{ fb_connected?: string; fb_error?: string; tiktok_error?: string }>;
 }) {
+  await requireAdminPage();
+
   const [connections, hdrs, params, profile, tiktok] = await Promise.all([
     getChannelConnections(),
     headers(),

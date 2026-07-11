@@ -37,10 +37,10 @@ const topLinks = [
 ];
 
 const bottomLinks = [
-  { href: "/forms", label: "Forms", icon: ClipboardList },
-  { href: "/campaigns", label: "Campaigns", icon: Send },
-  { href: "/resources", label: "Resources", icon: BookOpen },
-  { href: "/settings/channels", label: "Settings", icon: Settings },
+  { href: "/forms", label: "Forms", icon: ClipboardList, adminOnly: false },
+  { href: "/campaigns", label: "Campaigns", icon: Send, adminOnly: true },
+  { href: "/resources", label: "Resources", icon: BookOpen, adminOnly: false },
+  { href: "/settings/channels", label: "Settings", icon: Settings, adminOnly: true },
 ];
 
 const conversationLinks = [
@@ -83,7 +83,11 @@ const navItemActive = "bg-sidebar-primary text-sidebar-primary-foreground shadow
 const navItemInactive =
   "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground";
 
-export function Sidebar({ agentName }: { agentName?: string } = {}) {
+export function Sidebar({
+  agentName,
+  agentRole,
+}: { agentName?: string; agentRole?: "ADMIN" | "MEMBER" } = {}) {
+  const isAdmin = agentRole !== "MEMBER";
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const channel = searchParams.get("channel");
@@ -210,6 +214,7 @@ export function Sidebar({ agentName }: { agentName?: string } = {}) {
           General
         </p>
         {bottomLinks.map((link) => {
+          if (link.adminOnly && !isAdmin) return null;
           const active = pathname.startsWith(link.href);
           const Icon = link.icon;
           return (

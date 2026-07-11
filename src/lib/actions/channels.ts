@@ -9,6 +9,7 @@ import {
   subscribeAppToWaba,
   fetchPhoneNumberDisplayName,
 } from "@/lib/channels/whatsappEmbeddedSignup";
+import { requireAdminActionIfOnboarded } from "@/lib/current-agent";
 
 const REAL_CHANNELS: ConversationChannel[] = ["WHATSAPP", "FACEBOOK", "INSTAGRAM"];
 
@@ -42,6 +43,7 @@ export async function getChannelConnections() {
 }
 
 export async function saveWhatsAppCredentials(formData: FormData) {
+  await requireAdminActionIfOnboarded();
   await prisma.channelConnection.update({
     where: { channel: "WHATSAPP" },
     data: {
@@ -70,6 +72,7 @@ export async function connectWhatsAppEmbeddedSignup(
   wabaId: string,
   phoneNumberId: string
 ): Promise<EmbeddedSignupState> {
+  await requireAdminActionIfOnboarded();
   try {
     const accessToken = await exchangeEmbeddedSignupCode(code);
     await subscribeAppToWaba(wabaId, accessToken);
@@ -99,6 +102,7 @@ export async function saveMetaMessagingCredentials(
   channel: "FACEBOOK" | "INSTAGRAM",
   formData: FormData
 ) {
+  await requireAdminActionIfOnboarded();
   await prisma.channelConnection.update({
     where: { channel },
     data: {
@@ -114,6 +118,7 @@ export async function saveMetaMessagingCredentials(
 }
 
 export async function disconnectChannel(channel: ConversationChannel) {
+  await requireAdminActionIfOnboarded();
   await prisma.channelConnection.update({
     where: { channel },
     data: {
