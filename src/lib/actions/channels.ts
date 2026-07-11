@@ -80,6 +80,22 @@ export async function connectWhatsAppEmbeddedSignup(
   phoneNumberId: string
 ): Promise<EmbeddedSignupState> {
   const agent = await requireAdminAction();
+
+  // Nothing in Meta's flow stops the same WhatsApp number from being handed
+  // back to a second business — without this check, resolveConnectionForRecipient
+  // (src/lib/channels/inbound.ts) would have two ChannelConnection rows
+  // sharing one phoneNumberId and could route a real customer's messages to
+  // the wrong business.
+  const existing = await prisma.channelConnection.findFirst({
+    where: { channel: "WHATSAPP", phoneNumberId, businessId: { not: agent.businessId } },
+  });
+  if (existing) {
+    return {
+      error:
+        "This WhatsApp number is already connected to a different business on this system. Disconnect it there first, or use a different number.",
+    };
+  }
+
   try {
     const accessToken = await exchangeEmbeddedSignupCode(code);
     await subscribeAppToWaba(wabaId, accessToken);
@@ -196,6 +212,13 @@ export async function connectFacebookPage(pageId: string) {
   const page = pages.find((p) => p.id === pageId);
   if (!page) {
     redirect("/settings/channels?fb_error=page_not_found");
+  }
+
+  const existingPage = await prisma.channelConnection.findFirst({
+    where: { channel: "FACEBOOK", pageId: page.id, businessId: { not: agent.businessId } },
+  });
+  if (existingPage) {
+    redirect("/settings/channels?fb_error=page_already_connected");
   }
 
   await subscribeAppToPage(page.id, page.access_token);

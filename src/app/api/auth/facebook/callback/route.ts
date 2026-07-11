@@ -66,6 +66,19 @@ export async function GET(request: Request) {
     }
 
     const page = pages[0];
+
+    // Nothing in Meta's flow stops the same Page from being handed back to
+    // a second business — without this check, resolveConnectionForRecipient
+    // (src/lib/channels/inbound.ts) would have two ChannelConnection rows
+    // sharing one pageId and could route a real customer's messages to the
+    // wrong business.
+    const existingPage = await prisma.channelConnection.findFirst({
+      where: { channel: "FACEBOOK", pageId: page.id, businessId: { not: businessId } },
+    });
+    if (existingPage) {
+      return Response.redirect(`${origin}/settings/channels?fb_error=page_already_connected`);
+    }
+
     await subscribeAppToPage(page.id, page.access_token);
 
     await prisma.channelConnection.update({

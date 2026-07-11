@@ -53,7 +53,10 @@ export default async function ChannelsSettingsPage({
       )}
       {params.fb_error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          Facebook connection failed: {params.fb_error}
+          Facebook connection failed:{" "}
+          {params.fb_error === "page_already_connected"
+            ? "That Page is already connected to a different business on this system. Disconnect it there first, or connect a different Page."
+            : params.fb_error}
         </div>
       )}
       {params.tiktok_error && (
