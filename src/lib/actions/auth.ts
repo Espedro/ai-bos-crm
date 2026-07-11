@@ -14,6 +14,11 @@ export type LoginState = { error: string } | undefined;
 const MIN_PASSWORD_LENGTH = 8;
 const RESET_TOKEN_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
+/** A brand-new business has nowhere to create stages from scratch (there's
+ * no "add stage" UI), so the Deals pipeline would otherwise stay
+ * permanently empty and unusable after signup. */
+const DEFAULT_STAGES = ["New Lead", "Qualified", "Proposal Sent", "Negotiation", "Won", "Lost"];
+
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const slug = String(formData.get("slug") ?? "").trim();
   const email = String(formData.get("email") ?? "")
@@ -91,6 +96,14 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
 
   await prisma.agent.create({
     data: { businessId: business.id, name, email, role: "ADMIN" },
+  });
+
+  await prisma.stage.createMany({
+    data: DEFAULT_STAGES.map((stageName, order) => ({
+      businessId: business.id,
+      name: stageName,
+      order,
+    })),
   });
 
   redirect(`/login/${slug}`);
