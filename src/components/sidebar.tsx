@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { logout } from "@/lib/actions/auth";
+import { WhatsAppGlyph, MessengerGlyph, InstagramGlyph } from "@/components/brand-icons";
 import {
   LayoutDashboard,
   Users,
@@ -14,8 +15,6 @@ import {
   KanbanSquare,
   CheckSquare,
   MessageCircle,
-  MessageSquare,
-  Camera,
   MessageSquareText,
   BookOpen,
   Settings,
@@ -47,7 +46,7 @@ const conversationLinks = [
   {
     href: "/inbox?channel=WHATSAPP",
     label: "WhatsApp",
-    icon: MessageCircle,
+    icon: WhatsAppGlyph,
     iconClasses: "text-channel-whatsapp-foreground",
     isActive: (pathname: string, channel: string | null) =>
       pathname === "/inbox" && channel === "WHATSAPP",
@@ -55,7 +54,7 @@ const conversationLinks = [
   {
     href: "/inbox?channel=FACEBOOK",
     label: "Messenger",
-    icon: MessageSquare,
+    icon: MessengerGlyph,
     iconClasses: "text-channel-facebook-foreground",
     isActive: (pathname: string, channel: string | null) =>
       pathname === "/inbox" && channel === "FACEBOOK",
@@ -63,7 +62,7 @@ const conversationLinks = [
   {
     href: "/inbox?channel=INSTAGRAM",
     label: "Instagram",
-    icon: Camera,
+    icon: InstagramGlyph,
     iconClasses: "text-channel-instagram-foreground",
     isActive: (pathname: string, channel: string | null) =>
       pathname === "/inbox" && channel === "INSTAGRAM",
