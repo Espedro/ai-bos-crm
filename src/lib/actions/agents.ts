@@ -37,10 +37,24 @@ export async function updateAgentRole(agentId: string, role: AgentRole) {
   if (currentAgent.id === agentId && role !== "ADMIN") {
     const adminCount = await prisma.agent.count({ where: { role: "ADMIN" } });
     if (adminCount <= 1) {
-      throw new Error("You can't remove the last admin.");
+      throw new Error("You can't demote the last admin.");
     }
   }
 
   await prisma.agent.update({ where: { id: agentId }, data: { role } });
+  revalidatePath("/settings/team");
+}
+
+export async function deleteAgent(agentId: string) {
+  const currentAgent = await requireAdminAction();
+
+  if (currentAgent.id === agentId) {
+    throw new Error("You can't remove your own account — ask another admin to do it.");
+  }
+
+  // Unassigns (rather than blocking) anywhere this agent was referenced —
+  // Contact/Deal/Task/Note/Conversation all have this as an optional,
+  // ON DELETE SET NULL foreign key.
+  await prisma.agent.delete({ where: { id: agentId } });
   revalidatePath("/settings/team");
 }

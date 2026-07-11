@@ -2,6 +2,7 @@ import { getAgents, createAgent } from "@/lib/actions/agents";
 import { requireAdminPage } from "@/lib/current-agent";
 import { SettingsNav } from "@/components/settings-nav";
 import { AgentRoleSelect } from "@/components/agent-role-select";
+import { RemoveAgentButton } from "@/components/remove-agent-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,9 @@ export default async function TeamSettingsPage() {
                     {agent.passwordHash ? "Active" : "Invited"}
                   </span>
                   <AgentRoleSelect agentId={agent.id} role={agent.role} />
+                  {agent.id !== currentAgent.id && (
+                    <RemoveAgentButton agentId={agent.id} agentName={agent.name} />
+                  )}
                 </div>
               </div>
             ))}
