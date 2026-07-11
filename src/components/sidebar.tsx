@@ -25,6 +25,7 @@ import {
   Menu,
   X,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 
 const topLinks = [
@@ -39,6 +40,7 @@ const bottomLinks = [
   { href: "/forms", label: "Forms", icon: ClipboardList, adminOnly: false },
   { href: "/campaigns", label: "Campaigns", icon: Send, adminOnly: true },
   { href: "/resources", label: "Resources", icon: BookOpen, adminOnly: false },
+  { href: "/try-ai", label: "Try Your AI", icon: Sparkles, adminOnly: false },
   { href: "/settings/channels", label: "Settings", icon: Settings, adminOnly: true },
 ];
 

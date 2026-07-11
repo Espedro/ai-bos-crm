@@ -24,6 +24,7 @@ import {
   MessageSquareText,
   BookOpen,
   Settings,
+  Sparkles,
 } from "lucide-react";
 
 export const OPEN_COMMAND_PALETTE_EVENT = "open-command-palette";
@@ -35,6 +36,7 @@ const navigationItems = [
   { href: "/deals", label: "Deals", icon: KanbanSquare },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/resources", label: "Resources", icon: BookOpen },
+  { href: "/try-ai", label: "Try Your AI", icon: Sparkles },
   { href: "/settings/channels", label: "Settings", icon: Settings },
 ];
 
