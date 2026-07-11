@@ -196,9 +196,10 @@ export default async function ConversationDetailPage({
       </div>
 
       <div className="shrink-0 space-y-3 border-t px-3 py-3 sm:px-5 sm:py-4">
-        <CustomerMessageForm conversationId={conversation.id} />
-        {conversation.status === "ESCALATED" && (
+        {conversation.status === "ESCALATED" ? (
           <AgentMessageForm conversationId={conversation.id} agents={agents} />
+        ) : (
+          <CustomerMessageForm conversationId={conversation.id} />
         )}
       </div>
     </InboxShell>
