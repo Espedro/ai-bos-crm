@@ -76,12 +76,15 @@ export default async function TeamSettingsPage() {
           <CardTitle className="text-base">Add a team member</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={createAgent} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-2">
+          <form
+            action={createAgent}
+            className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
+          >
+            <div className="space-y-2">
               <Label htmlFor="agent-name">Name</Label>
               <Input id="agent-name" name="name" required />
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="agent-email">Email</Label>
               <Input id="agent-email" name="email" type="email" required />
             </div>
