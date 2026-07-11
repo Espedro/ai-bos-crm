@@ -1,6 +1,8 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { ConversationChannel } from "@prisma/client";
@@ -9,9 +11,11 @@ import {
   subscribeAppToWaba,
   fetchPhoneNumberDisplayName,
 } from "@/lib/channels/whatsappEmbeddedSignup";
+import { fetchManagedPages } from "@/lib/channels/facebookOAuth";
 import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 
 const REAL_CHANNELS: ConversationChannel[] = ["WHATSAPP", "FACEBOOK", "INSTAGRAM"];
+const PENDING_PAGES_COOKIE = "fb_pending_pages";
 
 function generateVerifyToken() {
   return randomBytes(16).toString("hex");
@@ -136,4 +140,89 @@ export async function disconnectChannel(channel: ConversationChannel) {
   });
 
   revalidatePath("/settings/channels");
+}
+
+/**
+ * Reads the short-lived pending-pages cookie left by the Facebook OAuth
+ * callback when the connecting account manages more than one Page, and
+ * re-fetches the live page list so the admin can pick the right one for
+ * this business. Never trusts the cookie's businessId alone — it must
+ * match the currently logged-in admin's own business.
+ */
+export async function getPendingFacebookPages() {
+  const agent = await requireAdminAction();
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(PENDING_PAGES_COOKIE)?.value;
+  if (!raw) return null;
+
+  let businessId: string | undefined;
+  let longLivedUserToken: string | undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    businessId = parsed?.businessId;
+    longLivedUserToken = parsed?.longLivedUserToken;
+  } catch {
+    return null;
+  }
+  if (!businessId || !longLivedUserToken || businessId !== agent.businessId) return null;
+
+  const pages = await fetchManagedPages(longLivedUserToken);
+  return pages.map((page) => ({
+    id: page.id,
+    name: page.name,
+    hasInstagram: !!page.instagram_business_account?.id,
+  }));
+}
+
+export async function connectFacebookPage(pageId: string) {
+  const agent = await requireAdminAction();
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(PENDING_PAGES_COOKIE)?.value;
+
+  let businessId: string | undefined;
+  let longLivedUserToken: string | undefined;
+  try {
+    const parsed = raw ? JSON.parse(raw) : null;
+    businessId = parsed?.businessId;
+    longLivedUserToken = parsed?.longLivedUserToken;
+  } catch {
+    businessId = undefined;
+  }
+  if (!businessId || !longLivedUserToken || businessId !== agent.businessId) {
+    redirect("/settings/channels?fb_error=invalid_state");
+  }
+
+  const pages = await fetchManagedPages(longLivedUserToken);
+  const page = pages.find((p) => p.id === pageId);
+  if (!page) {
+    redirect("/settings/channels?fb_error=page_not_found");
+  }
+
+  await prisma.channelConnection.update({
+    where: { businessId_channel: { businessId: agent.businessId, channel: "FACEBOOK" } },
+    data: {
+      accessToken: page.access_token,
+      pageId: page.id,
+      displayName: page.name,
+      status: "CONNECTED",
+      lastErrorMessage: null,
+    },
+  });
+
+  if (page.instagram_business_account?.id) {
+    await prisma.channelConnection.update({
+      where: { businessId_channel: { businessId: agent.businessId, channel: "INSTAGRAM" } },
+      data: {
+        accessToken: page.access_token,
+        pageId: page.instagram_business_account.id,
+        displayName: page.name,
+        status: "CONNECTED",
+        lastErrorMessage: null,
+      },
+    });
+  }
+
+  cookieStore.delete(PENDING_PAGES_COOKIE);
+  revalidatePath("/settings/channels");
+  redirect(`/settings/channels?fb_connected=${encodeURIComponent(page.name)}`);
 }

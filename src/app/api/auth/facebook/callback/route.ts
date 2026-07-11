@@ -7,6 +7,7 @@ import {
 } from "@/lib/channels/facebookOAuth";
 
 const STATE_COOKIE = "fb_oauth_state";
+const PENDING_PAGES_COOKIE = "fb_pending_pages";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -46,11 +47,24 @@ export async function GET(request: Request) {
     const shortLivedToken = await exchangeCodeForUserToken(code, redirectUri);
     const longLivedUserToken = await exchangeForLongLivedUserToken(shortLivedToken);
     const pages = await fetchManagedPages(longLivedUserToken);
-    const page = pages[0];
 
-    if (!page) {
+    if (pages.length === 0) {
       return Response.redirect(`${origin}/settings/channels?fb_error=no_pages_found`);
     }
+
+    // A Facebook account that manages more than one Page can't be resolved
+    // automatically — picking pages[0] would silently attach a random other
+    // business's Page here. Send the admin to a picker instead.
+    if (pages.length > 1) {
+      cookieStore.set(
+        PENDING_PAGES_COOKIE,
+        JSON.stringify({ businessId, longLivedUserToken }),
+        { httpOnly: true, secure: protocol === "https", sameSite: "lax", maxAge: 600, path: "/" }
+      );
+      return Response.redirect(`${origin}/settings/channels/select-facebook-page`);
+    }
+
+    const page = pages[0];
 
     await prisma.channelConnection.update({
       where: { businessId_channel: { businessId, channel: "FACEBOOK" } },
