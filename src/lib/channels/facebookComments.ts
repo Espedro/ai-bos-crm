@@ -3,6 +3,15 @@ import type { ChannelConnection } from "@prisma/client";
 const GRAPH_API_VERSION = "v22.0";
 
 export type ParsedComment = {
+  /**
+   * Meta's Page-object Webhooks product only supports ONE callback URL per
+   * app — every Page subscribed to this app delivers here, regardless of
+   * which business connected it. `recipientId` is the Page ID from
+   * `entry[].id`, which the webhook route uses to look up the right
+   * business's ChannelConnection instead of trusting the URL's
+   * connectionId segment.
+   */
+  recipientId: string;
   externalCommentId: string;
   postId?: string;
   commenterId?: string;
@@ -17,7 +26,7 @@ export type ParsedComment = {
  */
 export function parseFacebookCommentWebhook(body: unknown): ParsedComment | null {
   const entry = (body as { entry?: unknown[] })?.entry?.[0] as
-    | { changes?: unknown[] }
+    | { id?: string; changes?: unknown[] }
     | undefined;
 
   const change = entry?.changes?.find(
@@ -38,6 +47,7 @@ export function parseFacebookCommentWebhook(body: unknown): ParsedComment | null
   const value = change?.value;
 
   if (
+    !entry?.id ||
     !value ||
     value.item !== "comment" ||
     value.verb !== "add" ||
@@ -48,6 +58,7 @@ export function parseFacebookCommentWebhook(body: unknown): ParsedComment | null
   }
 
   return {
+    recipientId: entry.id,
     externalCommentId: value.comment_id,
     postId: value.post_id,
     commenterId: value.from?.id,

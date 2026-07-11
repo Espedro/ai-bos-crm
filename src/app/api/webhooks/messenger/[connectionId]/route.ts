@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { handleWebhookVerification } from "@/lib/channels/verifyWebhook";
 import { parseMetaMessagingWebhook } from "@/lib/channels/messenger";
-import { processInboundMessage } from "@/lib/channels/inbound";
+import { processInboundMessage, resolveConnectionForRecipient } from "@/lib/channels/inbound";
 import { parseFacebookCommentWebhook } from "@/lib/channels/facebookComments";
 import { processInboundComment } from "@/lib/channels/commentInbound";
 
@@ -49,8 +49,12 @@ export async function POST(
   const parsedMessage = parseMetaMessagingWebhook(body);
   if (parsedMessage) {
     try {
+      const realConnection = await resolveConnectionForRecipient(connection, {
+        channel: "FACEBOOK",
+        pageId: parsedMessage.recipientId,
+      });
       await processInboundMessage({
-        connection,
+        connection: realConnection,
         channel: "FACEBOOK",
         externalThreadId: parsedMessage.externalThreadId,
         senderDisplayName: parsedMessage.senderDisplayName,
@@ -64,8 +68,12 @@ export async function POST(
   const parsedComment = parseFacebookCommentWebhook(body);
   if (parsedComment) {
     try {
+      const realConnection = await resolveConnectionForRecipient(connection, {
+        channel: "FACEBOOK",
+        pageId: parsedComment.recipientId,
+      });
       await processInboundComment({
-        connection,
+        connection: realConnection,
         channel: "FACEBOOK",
         comment: parsedComment,
       });

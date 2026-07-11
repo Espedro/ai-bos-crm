@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { handleWebhookVerification } from "@/lib/channels/verifyWebhook";
 import { parseWhatsAppWebhook } from "@/lib/channels/whatsapp";
-import { processInboundMessage } from "@/lib/channels/inbound";
+import { processInboundMessage, resolveConnectionForRecipient } from "@/lib/channels/inbound";
 
 export async function GET(
   request: Request,
@@ -35,8 +35,12 @@ export async function POST(
     // soon as a response is returned, so fire-and-forget work here would
     // silently never complete.
     try {
+      const realConnection = await resolveConnectionForRecipient(connection, {
+        channel: "WHATSAPP",
+        phoneNumberId: parsed.phoneNumberId,
+      });
       await processInboundMessage({
-        connection,
+        connection: realConnection,
         channel: "WHATSAPP",
         externalThreadId: parsed.externalThreadId,
         senderDisplayName: parsed.senderDisplayName,

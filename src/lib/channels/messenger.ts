@@ -3,24 +3,37 @@ import type { ParsedInboundMessage } from "@/lib/channels/whatsapp";
 
 const GRAPH_API_VERSION = "v22.0";
 
+export type ParsedMetaMessagingWebhook = ParsedInboundMessage & {
+  /**
+   * Meta's Page-object Webhooks product only supports ONE callback URL per
+   * app — every Page (or Instagram account) subscribed to this app delivers
+   * here, regardless of which business connected it. `recipientId` is the
+   * actual Facebook Page ID / Instagram-scoped ID from `entry[].id`, which
+   * the webhook route uses to look up the right business's
+   * ChannelConnection instead of trusting the URL's connectionId segment.
+   */
+  recipientId: string;
+};
+
 /**
  * Facebook Messenger and Instagram DM webhooks share the same
  * `entry[].messaging[]` payload shape (Messenger Platform) — this parser
  * works for both, distinguished only by which webhook route received it.
  */
-export function parseMetaMessagingWebhook(body: unknown): ParsedInboundMessage | null {
+export function parseMetaMessagingWebhook(body: unknown): ParsedMetaMessagingWebhook | null {
   const entry = (body as { entry?: unknown[] })?.entry?.[0] as
-    | { messaging?: unknown[] }
+    | { id?: string; messaging?: unknown[] }
     | undefined;
   const event = entry?.messaging?.[0] as
     | { sender?: { id?: string }; message?: { text?: string; is_echo?: boolean } }
     | undefined;
 
-  if (!event?.sender?.id || !event.message?.text || event.message.is_echo) {
+  if (!entry?.id || !event?.sender?.id || !event.message?.text || event.message.is_echo) {
     return null;
   }
 
   return {
+    recipientId: entry.id,
     externalThreadId: event.sender.id,
     text: event.message.text,
   };
