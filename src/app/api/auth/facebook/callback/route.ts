@@ -21,14 +21,24 @@ export async function GET(request: Request) {
   const redirectUri = `${origin}/api/auth/facebook/callback`;
 
   const cookieStore = await cookies();
-  const expectedState = cookieStore.get(STATE_COOKIE)?.value;
+  const rawCookie = cookieStore.get(STATE_COOKIE)?.value;
   cookieStore.delete(STATE_COOKIE);
+
+  let expectedState: string | undefined;
+  let businessId: string | undefined;
+  try {
+    const parsed = rawCookie ? JSON.parse(rawCookie) : null;
+    expectedState = parsed?.state;
+    businessId = parsed?.businessId;
+  } catch {
+    // malformed cookie — treated as invalid state below
+  }
 
   if (oauthError) {
     return Response.redirect(`${origin}/settings/channels?fb_error=${encodeURIComponent(oauthError)}`);
   }
 
-  if (!code || !state || !expectedState || state !== expectedState) {
+  if (!code || !state || !expectedState || state !== expectedState || !businessId) {
     return Response.redirect(`${origin}/settings/channels?fb_error=invalid_state`);
   }
 
@@ -43,7 +53,7 @@ export async function GET(request: Request) {
     }
 
     await prisma.channelConnection.update({
-      where: { channel: "FACEBOOK" },
+      where: { businessId_channel: { businessId, channel: "FACEBOOK" } },
       data: {
         accessToken: page.access_token,
         pageId: page.id,
@@ -55,7 +65,7 @@ export async function GET(request: Request) {
 
     if (page.instagram_business_account?.id) {
       await prisma.channelConnection.update({
-        where: { channel: "INSTAGRAM" },
+        where: { businessId_channel: { businessId, channel: "INSTAGRAM" } },
         data: {
           accessToken: page.access_token,
           pageId: page.instagram_business_account.id,
@@ -70,7 +80,7 @@ export async function GET(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     await prisma.channelConnection.update({
-      where: { channel: "FACEBOOK" },
+      where: { businessId_channel: { businessId, channel: "FACEBOOK" } },
       data: { status: "ERROR", lastErrorMessage: message },
     });
     return Response.redirect(`${origin}/settings/channels?fb_error=${encodeURIComponent(message)}`);

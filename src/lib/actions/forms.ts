@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdminAction } from "@/lib/current-agent";
+import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
+import { slugify } from "@/lib/slugify";
 
 const MAX_COVER_IMAGE_BYTES = 2 * 1024 * 1024;
 
@@ -17,41 +18,37 @@ function readCoverImage(formData: FormData): string | null {
   return value;
 }
 
-function slugify(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") || "form"
-  );
-}
-
 export async function getForms() {
+  const agent = await getCurrentAgent();
   return prisma.form.findMany({
+    where: { businessId: agent.businessId },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { submissions: true } } },
   });
 }
 
 export async function getForm(id: string) {
-  return prisma.form.findUnique({
-    where: { id },
+  const agent = await getCurrentAgent();
+  return prisma.form.findFirst({
+    where: { id, businessId: agent.businessId },
     include: {
       submissions: { orderBy: { createdAt: "desc" }, include: { contact: true } },
     },
   });
 }
 
+/** Public lookup for /form/[slug] — slug is globally unique on purpose (see
+ * schema comment), it's the only lookup key available with no session. */
 export async function getFormBySlug(slug: string) {
   return prisma.form.findUnique({ where: { slug } });
 }
 
 export async function createForm(formData: FormData) {
+  const agent = await getCurrentAgent();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) throw new Error("Name is required");
 
-  const baseSlug = slugify(name);
+  const baseSlug = slugify(name, "form");
   let slug = baseSlug;
   let suffix = 1;
   while (await prisma.form.findUnique({ where: { slug } })) {
@@ -69,6 +66,7 @@ export async function createForm(formData: FormData) {
 
   const form = await prisma.form.create({
     data: {
+      businessId: agent.businessId,
       name,
       slug,
       description: String(formData.get("description") ?? "").trim() || null,
@@ -85,19 +83,23 @@ export async function createForm(formData: FormData) {
 }
 
 export async function deleteForm(id: string) {
-  await requireAdminAction();
-  await prisma.form.delete({ where: { id } });
+  const agent = await requireAdminAction();
+  await prisma.form.deleteMany({ where: { id, businessId: agent.businessId } });
   revalidatePath("/forms");
 }
 
 export async function updateFormCoverImage(id: string, dataUrl: string | null) {
+  const agent = await getCurrentAgent();
   if (dataUrl && dataUrl.length > MAX_COVER_IMAGE_BYTES * 1.4) {
     throw new Error("Cover image is too large (2MB max)");
   }
   if (dataUrl && !dataUrl.startsWith("data:image/")) {
     throw new Error("Invalid image");
   }
-  await prisma.form.update({ where: { id }, data: { coverImageUrl: dataUrl } });
+  await prisma.form.updateMany({
+    where: { id, businessId: agent.businessId },
+    data: { coverImageUrl: dataUrl },
+  });
   revalidatePath(`/forms/${id}`);
 }
 
@@ -105,7 +107,8 @@ export async function updateFormCoverImage(id: string, dataUrl: string | null) {
  * Public submission handler for /form/[slug]. Upserts a Contact by email
  * (when provided) so repeat submissions and mailing-list segmentation work
  * off the same CRM record, and always keeps the raw submitted values on
- * FormSubmission for reference.
+ * FormSubmission for reference. No session exists here — every scoping key
+ * comes from the form itself (found by its globally-unique slug).
  */
 export async function submitForm(slug: string, formData: FormData) {
   const form = await prisma.form.findUniqueOrThrow({ where: { slug } });
@@ -125,7 +128,9 @@ export async function submitForm(slug: string, formData: FormData) {
     if (value) customValues[field.label] = value;
   }
 
-  let contact = email ? await prisma.contact.findFirst({ where: { email } }) : null;
+  let contact = email
+    ? await prisma.contact.findFirst({ where: { email, businessId: form.businessId } })
+    : null;
 
   if (contact) {
     contact = await prisma.contact.update({
@@ -140,6 +145,7 @@ export async function submitForm(slug: string, formData: FormData) {
   } else {
     contact = await prisma.contact.create({
       data: {
+        businessId: form.businessId,
         firstName: firstName || "Form",
         lastName: lastName || "Submission",
         email,
@@ -151,6 +157,7 @@ export async function submitForm(slug: string, formData: FormData) {
 
   await prisma.formSubmission.create({
     data: {
+      businessId: form.businessId,
       formId: form.id,
       contactId: contact.id,
       data: JSON.stringify({ firstName, lastName, email, phone, message, ...customValues }),

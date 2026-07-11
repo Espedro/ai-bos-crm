@@ -9,16 +9,28 @@ import { recipientWhere } from "@/lib/campaign-recipients";
 /**
  * The actual send implementation, callable without a logged-in session —
  * used both by the admin-gated `sendCampaign` action and by the scheduled-
- * send cron route (authenticated separately via CRON_SECRET).
+ * send cron route (authenticated separately via CRON_SECRET). When called
+ * from an authenticated action, pass the caller's own `businessId` so a
+ * campaign belonging to a different tenant can't be triggered by id alone;
+ * the cron path omits it and trusts the campaign's own businessId since it
+ * already iterates its own scoped query.
  */
-export async function sendCampaignCore(id: string) {
+export async function sendCampaignCore(id: string, callerBusinessId?: string) {
   const campaign = await prisma.campaign.findUniqueOrThrow({ where: { id } });
-  const [profile, hdrs] = await Promise.all([prisma.businessProfile.findFirst(), headers()]);
+  if (callerBusinessId && campaign.businessId !== callerBusinessId) {
+    throw new Error("Campaign not found.");
+  }
+  const businessId = campaign.businessId;
+
+  const [business, hdrs] = await Promise.all([
+    prisma.business.findUnique({ where: { id: businessId } }),
+    headers(),
+  ]);
   const host = hdrs.get("host") ?? "localhost:3000";
   const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
 
   const contacts = await prisma.contact.findMany({
-    where: recipientWhere(campaign.filterTag, campaign.filterStatus),
+    where: recipientWhere(businessId, campaign.filterTag, campaign.filterStatus),
   });
 
   await prisma.campaign.update({ where: { id }, data: { status: "SENDING" } });
@@ -27,7 +39,7 @@ export async function sendCampaignCore(id: string) {
     await prisma.campaignRecipient.upsert({
       where: { campaignId_contactId: { campaignId: id, contactId: contact.id } },
       update: {},
-      create: { campaignId: id, contactId: contact.id },
+      create: { businessId, campaignId: id, contactId: contact.id },
     });
   }
 
@@ -36,7 +48,7 @@ export async function sendCampaignCore(id: string) {
     include: { contact: true },
   });
 
-  const from = resolveFromAddress(profile?.emailFromName, profile?.emailFromAddress);
+  const from = resolveFromAddress(business?.emailFromName, business?.emailFromAddress);
   const CONCURRENCY = 10;
   for (let i = 0; i < pending.length; i += CONCURRENCY) {
     const chunk = pending.slice(i, i + CONCURRENCY);

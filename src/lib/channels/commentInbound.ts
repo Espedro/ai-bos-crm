@@ -26,7 +26,9 @@ export async function processInboundComment(params: {
   });
   if (existing) return;
 
-  const resources = await prisma.businessResource.findMany();
+  const resources = await prisma.businessResource.findMany({
+    where: { businessId: connection.businessId },
+  });
   const replyText = await generateCommentReply(comment.commentText, resources);
 
   try {
@@ -52,6 +54,7 @@ export async function processInboundComment(params: {
 
   await prisma.commentReply.create({
     data: {
+      businessId: connection.businessId,
       channelConnectionId: connection.id,
       channel,
       externalCommentId: comment.externalCommentId,

@@ -81,10 +81,54 @@ enum AgentRole {
   MEMBER
 }
 
+/// Tenant root. A "Private" tier deployment has exactly one Business row (its
+/// own dedicated Supabase project); a "Standard" tier deployment has many,
+/// sharing one Supabase project — same schema and code serve both tiers.
+/// `slug` is the tenant-resolution key used in /login/[businessSlug] and
+/// /signup, since this app doesn't use subdomains.
+model Business {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  description String?
+  /// "From" name/address for mass-mail sends via Resend. Populated once the
+  /// business owner verifies their own domain in their own Resend account —
+  /// falls back to Resend's shared test sender until then.
+  emailFromName    String?
+  emailFromAddress String?
+  /// Set once the /setup or /signup onboarding flow finishes for this
+  /// business — gates access the same way BusinessProfile.completedAt did.
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  agents               Agent[]
+  companies            Company[]
+  contacts             Contact[]
+  stages               Stage[]
+  deals                Deal[]
+  tasks                Task[]
+  notes                Note[]
+  activityEvents       ActivityEvent[]
+  businessResources    BusinessResource[]
+  forms                Form[]
+  formSubmissions      FormSubmission[]
+  emailTemplates       EmailTemplate[]
+  campaigns            Campaign[]
+  campaignRecipients   CampaignRecipient[]
+  conversations        Conversation[]
+  messages             Message[]
+  channelConnections   ChannelConnection[]
+  commentReplies       CommentReply[]
+  tikTokAdsConnections TikTokAdsConnection[]
+  tikTokLeads          TikTokLead[]
+}
+
 model Agent {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
+  id         String @id @default(cuid())
+  businessId String
+  name       String
+  email      String
   /// Set on first login (account "claim") — null means this agent hasn't
   /// signed in yet, so the login form treats the submitted password as the
   /// one to set rather than one to verify.
@@ -99,24 +143,29 @@ model Agent {
   role      AgentRole @default(ADMIN)
   createdAt DateTime  @default(now())
 
+  business              Business       @relation(fields: [businessId], references: [id])
   assignedContacts      Contact[]
   assignedDeals         Deal[]
   assignedTasks         Task[]
   notes                 Note[]
   assignedConversations Conversation[]
+
+  @@unique([businessId, email])
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  name      String
-  industry  String?
-  website   String?
-  phone     String?
-  address   String?
-  tags      String   @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  industry   String?
+  website    String?
+  phone      String?
+  address    String?
+  tags       String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
+  business Business  @relation(fields: [businessId], references: [id])
   contacts Contact[]
   deals    Deal[]
   notes    Note[]
@@ -124,6 +173,7 @@ model Company {
 
 model Contact {
   id              String        @id @default(cuid())
+  businessId      String
   firstName       String
   lastName        String
   email           String?
@@ -136,6 +186,7 @@ model Contact {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  business           Business            @relation(fields: [businessId], references: [id])
   company            Company?            @relation(fields: [companyId], references: [id])
   assignedAgent      Agent?              @relation(fields: [assignedAgentId], references: [id])
   deals              Deal[]
@@ -149,15 +200,18 @@ model Contact {
 }
 
 model Stage {
-  id    String @id @default(cuid())
-  name  String
-  order Int
+  id         String @id @default(cuid())
+  businessId String
+  name       String
+  order      Int
 
-  deals Deal[]
+  business Business @relation(fields: [businessId], references: [id])
+  deals    Deal[]
 }
 
 model Deal {
   id                String    @id @default(cuid())
+  businessId        String
   title             String
   value             Float     @default(0)
   currency          String    @default("USD")
@@ -169,6 +223,7 @@ model Deal {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  business      Business        @relation(fields: [businessId], references: [id])
   contact       Contact         @relation(fields: [contactId], references: [id])
   company       Company?        @relation(fields: [companyId], references: [id])
   stage         Stage           @relation(fields: [stageId], references: [id])
@@ -180,6 +235,7 @@ model Deal {
 
 model Task {
   id              String    @id @default(cuid())
+  businessId      String
   title           String
   description     String?
   dueDate         DateTime?
@@ -190,6 +246,7 @@ model Task {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  business      Business @relation(fields: [businessId], references: [id])
   contact       Contact? @relation(fields: [contactId], references: [id])
   deal          Deal?    @relation(fields: [dealId], references: [id])
   assignedAgent Agent?   @relation(fields: [assignedAgentId], references: [id])
@@ -197,6 +254,7 @@ model Task {
 
 model Note {
   id            String   @id @default(cuid())
+  businessId    String
   body          String
   contactId     String?
   dealId        String?
@@ -204,6 +262,7 @@ model Note {
   authorAgentId String?
   createdAt     DateTime @default(now())
 
+  business    Business @relation(fields: [businessId], references: [id])
   contact     Contact? @relation(fields: [contactId], references: [id])
   deal        Deal?    @relation(fields: [dealId], references: [id])
   company     Company? @relation(fields: [companyId], references: [id])
@@ -212,45 +271,38 @@ model Note {
 
 model ActivityEvent {
   id          String       @id @default(cuid())
+  businessId  String
   type        ActivityType
   description String
   contactId   String?
   dealId      String?
   createdAt   DateTime     @default(now())
 
-  contact Contact? @relation(fields: [contactId], references: [id])
-  deal    Deal?    @relation(fields: [dealId], references: [id])
+  business Business @relation(fields: [businessId], references: [id])
+  contact  Contact? @relation(fields: [contactId], references: [id])
+  deal     Deal?    @relation(fields: [dealId], references: [id])
 }
 
 model BusinessResource {
-  id        String           @id @default(cuid())
-  title     String
-  category  ResourceCategory @default(OTHER)
-  content   String
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-}
+  id         String           @id @default(cuid())
+  businessId String
+  title      String
+  category   ResourceCategory @default(OTHER)
+  content    String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
-/// Singleton row (only one ever exists) — presence + completedAt drive the
-/// first-run setup wizard gate in src/app/(app)/layout.tsx.
-model BusinessProfile {
-  id               String    @id @default(cuid())
-  name             String
-  description      String?
-  /// "From" name/address for mass-mail sends via Resend. Populated once the
-  /// business owner verifies their own domain in their own Resend account —
-  /// falls back to Resend's shared test sender until then.
-  emailFromName    String?
-  emailFromAddress String?
-  completedAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  business Business @relation(fields: [businessId], references: [id])
 }
 
 /// A public lead-capture form a business shares with a link. Fields are a
 /// fixed, curated set (not a drag-drop builder) — kept simple on purpose.
+/// `slug` stays globally unique (not composite with businessId) because the
+/// public /form/[slug] URL is the only lookup key available there — no
+/// session, no other tenant signal.
 model Form {
   id             String   @id @default(cuid())
+  businessId     String
   name           String
   slug           String   @unique
   description    String?
@@ -266,35 +318,41 @@ model Form {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  business    Business         @relation(fields: [businessId], references: [id])
   submissions FormSubmission[]
 }
 
 model FormSubmission {
-  id        String   @id @default(cuid())
-  formId    String
-  contactId String?
+  id         String   @id @default(cuid())
+  businessId String
+  formId     String
+  contactId  String?
   /// JSON snapshot of the raw submitted values, including any custom fields
   /// that don't map onto a Contact column.
-  data      String
-  createdAt DateTime @default(now())
+  data       String
+  createdAt  DateTime @default(now())
 
-  form    Form     @relation(fields: [formId], references: [id])
-  contact Contact? @relation(fields: [contactId], references: [id])
+  business Business @relation(fields: [businessId], references: [id])
+  form     Form     @relation(fields: [formId], references: [id])
+  contact  Contact? @relation(fields: [contactId], references: [id])
 }
 
 model EmailTemplate {
-  id        String   @id @default(cuid())
-  name      String
-  subject   String
-  body      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  subject    String
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
+  business  Business   @relation(fields: [businessId], references: [id])
   campaigns Campaign[]
 }
 
 model Campaign {
   id           String         @id @default(cuid())
+  businessId   String
   name         String
   subject      String
   body         String
@@ -309,16 +367,19 @@ model Campaign {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
+  business   Business            @relation(fields: [businessId], references: [id])
   template   EmailTemplate?      @relation(fields: [templateId], references: [id])
   recipients CampaignRecipient[]
 }
 
 model CampaignRecipient {
-  id            String              @id @default(cuid())
-  campaignId    String
-  contactId     String
+  id         String @id @default(cuid())
+  businessId String
+  campaignId String
+  contactId  String
   /// Opaque token embedded in the tracking pixel/click-redirect URLs so opens
   /// and clicks can be attributed without exposing the recipient's identity.
+  /// Stays globally unique — it's the only lookup key at that public boundary.
   trackingToken String              @unique @default(cuid())
   status        RecipientSendStatus @default(PENDING)
   errorMessage  String?
@@ -326,6 +387,7 @@ model CampaignRecipient {
   openedAt      DateTime?
   clickedAt     DateTime?
 
+  business Business @relation(fields: [businessId], references: [id])
   campaign Campaign @relation(fields: [campaignId], references: [id])
   contact  Contact  @relation(fields: [contactId], references: [id])
 
@@ -333,16 +395,18 @@ model CampaignRecipient {
 }
 
 model Conversation {
-  id                 String              @id @default(cuid())
-  contactId          String
-  channel            ConversationChannel @default(WHATSAPP)
-  status             ConversationStatus  @default(AI_HANDLING)
-  assignedAgentId    String?
+  id                  String              @id @default(cuid())
+  businessId          String
+  contactId           String
+  channel             ConversationChannel @default(WHATSAPP)
+  status              ConversationStatus  @default(AI_HANDLING)
+  assignedAgentId     String?
   channelConnectionId String?
-  externalThreadId   String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  externalThreadId    String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
+  business          Business           @relation(fields: [businessId], references: [id])
   contact           Contact            @relation(fields: [contactId], references: [id])
   assignedAgent     Agent?             @relation(fields: [assignedAgentId], references: [id])
   channelConnection ChannelConnection? @relation(fields: [channelConnectionId], references: [id])
@@ -353,7 +417,8 @@ model Conversation {
 
 model ChannelConnection {
   id                 String                  @id @default(cuid())
-  channel            ConversationChannel     @unique
+  businessId         String
+  channel            ConversationChannel
   status             ChannelConnectionStatus @default(DISCONNECTED)
   displayName        String?
   phoneNumberId      String?
@@ -365,12 +430,16 @@ model ChannelConnection {
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
 
+  business       Business       @relation(fields: [businessId], references: [id])
   conversations  Conversation[]
   commentReplies CommentReply[]
+
+  @@unique([businessId, channel])
 }
 
 model CommentReply {
   id                  String              @id @default(cuid())
+  businessId          String
   channelConnectionId String
   channel             ConversationChannel
   externalCommentId   String              @unique
@@ -380,15 +449,16 @@ model CommentReply {
   replyText           String
   createdAt           DateTime            @default(now())
 
+  business          Business          @relation(fields: [businessId], references: [id])
   channelConnection ChannelConnection @relation(fields: [channelConnectionId], references: [id])
 }
 
-/// Singleton row (upsert-on-first-access, same pattern as ChannelConnection
-/// rows) — a business's TikTok Ads advertiser authorization, used only to
-/// pull Lead Generation ad leads (TikTok has no self-serve DM/messaging API,
-/// so this is deliberately ads-only, not a conversation channel).
+/// A business's TikTok Ads advertiser authorization, used only to pull Lead
+/// Generation ad leads (TikTok has no self-serve DM/messaging API, so this is
+/// deliberately ads-only, not a conversation channel). One per business.
 model TikTokAdsConnection {
   id               String                  @id @default(cuid())
+  businessId       String                  @unique
   status           ChannelConnectionStatus @default(DISCONNECTED)
   displayName      String?
   advertiserId     String?
@@ -398,33 +468,38 @@ model TikTokAdsConnection {
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
-  leads TikTokLead[]
+  business Business     @relation(fields: [businessId], references: [id])
+  leads    TikTokLead[]
 }
 
 /// Raw record of an ingested TikTok lead, keyed by TikTok's own lead id so
 /// re-polling the same lead (task/download can return leads already seen)
 /// doesn't create duplicate Contacts or re-trigger AI follow-up.
 model TikTokLead {
-  id               String   @id @default(cuid())
-  connectionId     String
-  externalLeadId   String   @unique
-  contactId        String?
+  id             String   @id @default(cuid())
+  businessId     String
+  connectionId   String
+  externalLeadId String   @unique
+  contactId      String?
   /// JSON snapshot of the raw lead payload (name/phone/email/custom
   /// question answers) — field names aren't fully documented by TikTok, so
   /// this is kept verbatim for debugging until the real shape is confirmed.
-  data             String
-  createdAt        DateTime @default(now())
+  data           String
+  createdAt      DateTime @default(now())
 
+  business   Business            @relation(fields: [businessId], references: [id])
   connection TikTokAdsConnection @relation(fields: [connectionId], references: [id])
   contact    Contact?            @relation(fields: [contactId], references: [id])
 }
 
 model Message {
   id             String        @id @default(cuid())
+  businessId     String
   conversationId String
   sender         MessageSender
   body           String
   createdAt      DateTime      @default(now())
 
+  business     Business     @relation(fields: [businessId], references: [id])
   conversation Conversation @relation(fields: [conversationId], references: [id])
 }

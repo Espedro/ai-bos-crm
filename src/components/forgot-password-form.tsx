@@ -16,7 +16,7 @@ function SubmitButton() {
   );
 }
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ slug }: { slug: string }) {
   const [state, formAction] = useActionState<RequestResetState, FormData>(
     requestPasswordReset,
     undefined
@@ -32,6 +32,7 @@ export function ForgotPasswordForm() {
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="slug" value={slug} />
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />

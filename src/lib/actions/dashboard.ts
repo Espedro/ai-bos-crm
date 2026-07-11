@@ -1,14 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getCurrentAgent } from "@/lib/current-agent";
 
 export async function getLeadTrend(days = 14) {
+  const agent = await getCurrentAgent();
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - (days - 1));
 
   const leads = await prisma.contact.findMany({
-    where: { status: "LEAD", createdAt: { gte: start } },
+    where: { businessId: agent.businessId, status: "LEAD", createdAt: { gte: start } },
     select: { createdAt: true },
   });
 

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { ResourceCategory } from "@prisma/client";
 import { extractResourcesFromWebsiteText } from "@/lib/ai/websiteImport";
-import { requireAdminAction } from "@/lib/current-agent";
+import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 
 function htmlToText(html: string): string {
   return html
@@ -24,6 +24,7 @@ export async function importResourcesFromWebsite(
   _prevState: ImportWebsiteState,
   formData: FormData
 ): Promise<ImportWebsiteState> {
+  const agent = await getCurrentAgent();
   const url = String(formData.get("url") ?? "").trim();
   if (!/^https?:\/\//i.test(url)) {
     return { message: "Enter a full URL starting with http:// or https://" };
@@ -60,7 +61,12 @@ export async function importResourcesFromWebsite(
   }
 
   await prisma.businessResource.createMany({
-    data: extracted.map((r) => ({ title: r.title, category: r.category, content: r.content })),
+    data: extracted.map((r) => ({
+      businessId: agent.businessId,
+      title: r.title,
+      category: r.category,
+      content: r.content,
+    })),
   });
 
   revalidatePath("/resources");
@@ -69,16 +75,22 @@ export async function importResourcesFromWebsite(
 }
 
 export async function getResources() {
-  return prisma.businessResource.findMany({ orderBy: { createdAt: "desc" } });
+  const agent = await getCurrentAgent();
+  return prisma.businessResource.findMany({
+    where: { businessId: agent.businessId },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function createResource(formData: FormData) {
+  const agent = await getCurrentAgent();
   const title = String(formData.get("title") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
   if (!title || !content) throw new Error("Title and content are required");
 
   await prisma.businessResource.create({
     data: {
+      businessId: agent.businessId,
       title,
       content,
       category: (String(formData.get("category") ?? "OTHER") as ResourceCategory) || "OTHER",
@@ -89,7 +101,7 @@ export async function createResource(formData: FormData) {
 }
 
 export async function deleteResource(id: string) {
-  await requireAdminAction();
-  await prisma.businessResource.delete({ where: { id } });
+  const agent = await requireAdminAction();
+  await prisma.businessResource.deleteMany({ where: { id, businessId: agent.businessId } });
   revalidatePath("/resources");
 }

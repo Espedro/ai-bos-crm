@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { fetchRecentLeads, type TikTokLeadRaw } from "@/lib/channels/tiktokAds";
 import { generateAiReply } from "@/lib/ai/aiEmployee";
 import { resolveFromAddress, sendCampaignEmail } from "@/lib/email/resend";
+import type { TikTokAdsConnection } from "@prisma/client";
 
 function extractField(lead: TikTokLeadRaw, keys: string[]): string | undefined {
   for (const key of keys) {
@@ -23,31 +24,15 @@ function summarizeLead(lead: TikTokLeadRaw): string {
     .join(", ");
 }
 
-/**
- * Polled on a schedule (see /api/cron/sync-tiktok-leads) since TikTok's
- * Lead Generation API has no self-serve real-time webhook — only
- * TikTok-certified CRM partners get push delivery. Creates/updates a
- * Contact per new lead and has the AI Employee send a first-touch email.
- *
- * WhatsApp follow-up is deliberately NOT attempted here: messaging someone
- * who hasn't messaged the business first requires a pre-approved WhatsApp
- * message template, not the free-form replies generateAiReply produces
- * everywhere else in this app — that's separate, not-yet-built work.
- */
-export async function syncTikTokLeads(): Promise<{ processed: number }> {
-  const connection = await prisma.tikTokAdsConnection.findFirst();
-  if (
-    !connection ||
-    connection.status !== "CONNECTED" ||
-    !connection.accessToken ||
-    !connection.advertiserId
-  ) {
-    return { processed: 0 };
+async function syncLeadsForConnection(connection: TikTokAdsConnection): Promise<number> {
+  if (connection.status !== "CONNECTED" || !connection.accessToken || !connection.advertiserId) {
+    return 0;
   }
 
-  const [resources, profile] = await Promise.all([
-    prisma.businessResource.findMany(),
-    prisma.businessProfile.findFirst(),
+  const businessId = connection.businessId;
+  const [resources, business] = await Promise.all([
+    prisma.businessResource.findMany({ where: { businessId } }),
+    prisma.business.findUnique({ where: { id: businessId } }),
   ]);
 
   let leads: TikTokLeadRaw[];
@@ -78,14 +63,15 @@ export async function syncTikTokLeads(): Promise<{ processed: number }> {
     const [firstName, ...rest] = name.split(" ");
 
     let contact = email
-      ? await prisma.contact.findFirst({ where: { email } })
+      ? await prisma.contact.findFirst({ where: { email, businessId } })
       : phone
-        ? await prisma.contact.findFirst({ where: { phone } })
+        ? await prisma.contact.findFirst({ where: { phone, businessId } })
         : null;
 
     if (!contact) {
       contact = await prisma.contact.create({
         data: {
+          businessId,
           firstName: firstName || "TikTok",
           lastName: rest.join(" ") || "Lead",
           email: email ?? null,
@@ -97,6 +83,7 @@ export async function syncTikTokLeads(): Promise<{ processed: number }> {
 
     await prisma.tikTokLead.create({
       data: {
+        businessId,
         connectionId: connection.id,
         externalLeadId,
         contactId: contact.id,
@@ -110,12 +97,12 @@ export async function syncTikTokLeads(): Promise<{ processed: number }> {
           [],
           `Hi, I just filled out your form on TikTok — here's what I'm interested in: ${summarizeLead(lead)}`,
           resources,
-          profile?.name
+          business?.name
         );
         await sendCampaignEmail({
-          from: resolveFromAddress(profile?.emailFromName, profile?.emailFromAddress),
+          from: resolveFromAddress(business?.emailFromName, business?.emailFromAddress),
           to: email,
-          subject: profile?.name ? `Thanks for your interest — ${profile.name}` : "Thanks for your interest!",
+          subject: business?.name ? `Thanks for your interest — ${business.name}` : "Thanks for your interest!",
           html: reply
             .split("\n")
             .filter((line) => line.trim())
@@ -134,6 +121,32 @@ export async function syncTikTokLeads(): Promise<{ processed: number }> {
     where: { id: connection.id },
     data: { lastSyncedAt: new Date(), status: "CONNECTED", lastErrorMessage: null },
   });
+
+  return processed;
+}
+
+/**
+ * Polled on a schedule (see /api/cron/sync-tiktok-leads) since TikTok's
+ * Lead Generation API has no self-serve real-time webhook — only
+ * TikTok-certified CRM partners get push delivery. Creates/updates a
+ * Contact per new lead and has the AI Employee send a first-touch email.
+ * Loops over every business's connected TikTokAdsConnection (one per
+ * business, enforced by a unique businessId), not just one global account.
+ *
+ * WhatsApp follow-up is deliberately NOT attempted here: messaging someone
+ * who hasn't messaged the business first requires a pre-approved WhatsApp
+ * message template, not the free-form replies generateAiReply produces
+ * everywhere else in this app — that's separate, not-yet-built work.
+ */
+export async function syncTikTokLeads(): Promise<{ processed: number }> {
+  const connections = await prisma.tikTokAdsConnection.findMany({
+    where: { status: "CONNECTED" },
+  });
+
+  let processed = 0;
+  for (const connection of connections) {
+    processed += await syncLeadsForConnection(connection);
+  }
 
   return { processed };
 }

@@ -4,30 +4,34 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ContactStatus } from "@prisma/client";
-import { requireAdminAction } from "@/lib/current-agent";
+import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 import { sendCampaignCore } from "@/lib/campaign-sender";
 import { recipientWhere } from "@/lib/campaign-recipients";
 
 export async function getCampaigns() {
+  const agent = await getCurrentAgent();
   return prisma.campaign.findMany({
+    where: { businessId: agent.businessId },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { recipients: true } } },
   });
 }
 
 export async function getCampaign(id: string) {
-  return prisma.campaign.findUnique({
-    where: { id },
+  const agent = await getCurrentAgent();
+  return prisma.campaign.findFirst({
+    where: { id, businessId: agent.businessId },
     include: { recipients: { include: { contact: true } } },
   });
 }
 
 export async function countMatchingContacts(filterTag: string | null, filterStatus: ContactStatus | null) {
-  return prisma.contact.count({ where: recipientWhere(filterTag, filterStatus) });
+  const agent = await getCurrentAgent();
+  return prisma.contact.count({ where: recipientWhere(agent.businessId, filterTag, filterStatus) });
 }
 
 export async function createCampaign(formData: FormData) {
-  await requireAdminAction();
+  const agent = await requireAdminAction();
 
   const name = String(formData.get("name") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();
@@ -36,6 +40,7 @@ export async function createCampaign(formData: FormData) {
 
   const campaign = await prisma.campaign.create({
     data: {
+      businessId: agent.businessId,
       name,
       subject,
       body,
@@ -49,31 +54,31 @@ export async function createCampaign(formData: FormData) {
 }
 
 export async function deleteCampaign(id: string) {
-  await requireAdminAction();
-  await prisma.campaign.delete({ where: { id } });
+  const agent = await requireAdminAction();
+  await prisma.campaign.deleteMany({ where: { id, businessId: agent.businessId } });
   revalidatePath("/campaigns");
 }
 
 /** Admin-gated wrapper around the real send logic in `@/lib/campaign-sender` — the
  * cron route calls `sendCampaignCore` directly since it has no user session. */
 export async function sendCampaign(id: string) {
-  await requireAdminAction();
-  await sendCampaignCore(id);
+  const agent = await requireAdminAction();
+  await sendCampaignCore(id, agent.businessId);
 }
 
 export async function scheduleCampaign(id: string, scheduledAt: Date) {
-  await requireAdminAction();
-  await prisma.campaign.update({
-    where: { id },
+  const agent = await requireAdminAction();
+  await prisma.campaign.updateMany({
+    where: { id, businessId: agent.businessId },
     data: { status: "SCHEDULED", scheduledAt },
   });
   revalidatePath(`/campaigns/${id}`);
 }
 
 export async function cancelSchedule(id: string) {
-  await requireAdminAction();
-  await prisma.campaign.update({
-    where: { id },
+  const agent = await requireAdminAction();
+  await prisma.campaign.updateMany({
+    where: { id, businessId: agent.businessId },
     data: { status: "DRAFT", scheduledAt: null },
   });
   revalidatePath(`/campaigns/${id}`);

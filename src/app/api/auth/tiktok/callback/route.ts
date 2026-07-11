@@ -16,10 +16,20 @@ export async function GET(request: Request) {
   const origin = `${protocol}://${host}`;
 
   const cookieStore = await cookies();
-  const expectedState = cookieStore.get(STATE_COOKIE)?.value;
+  const rawCookie = cookieStore.get(STATE_COOKIE)?.value;
   cookieStore.delete(STATE_COOKIE);
 
-  if (!authCode || !state || !expectedState || state !== expectedState) {
+  let expectedState: string | undefined;
+  let businessId: string | undefined;
+  try {
+    const parsed = rawCookie ? JSON.parse(rawCookie) : null;
+    expectedState = parsed?.state;
+    businessId = parsed?.businessId;
+  } catch {
+    // malformed cookie — treated as invalid state below
+  }
+
+  if (!authCode || !state || !expectedState || state !== expectedState || !businessId) {
     return Response.redirect(`${origin}/settings/channels?tiktok_error=invalid_state`);
   }
 
@@ -30,7 +40,6 @@ export async function GET(request: Request) {
       return Response.redirect(`${origin}/settings/channels?tiktok_error=no_advertisers_found`);
     }
 
-    const connection = await prisma.tikTokAdsConnection.findFirst();
     const data = {
       accessToken,
       advertiserId,
@@ -38,22 +47,19 @@ export async function GET(request: Request) {
       status: "CONNECTED" as const,
       lastErrorMessage: null,
     };
-    if (connection) {
-      await prisma.tikTokAdsConnection.update({ where: { id: connection.id }, data });
-    } else {
-      await prisma.tikTokAdsConnection.create({ data });
-    }
+    await prisma.tikTokAdsConnection.upsert({
+      where: { businessId },
+      update: data,
+      create: { businessId, ...data },
+    });
 
     return Response.redirect(`${origin}/settings/channels?tiktok_connected=1`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    const connection = await prisma.tikTokAdsConnection.findFirst();
-    if (connection) {
-      await prisma.tikTokAdsConnection.update({
-        where: { id: connection.id },
-        data: { status: "ERROR", lastErrorMessage: message },
-      });
-    }
+    await prisma.tikTokAdsConnection.updateMany({
+      where: { businessId },
+      data: { status: "ERROR", lastErrorMessage: message },
+    });
     return Response.redirect(`${origin}/settings/channels?tiktok_error=${encodeURIComponent(message)}`);
   }
 }

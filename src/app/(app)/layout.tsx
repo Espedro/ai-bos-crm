@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { getCurrentAgent } from "@/lib/current-agent";
+import { getCurrentAgent, getCurrentBusiness } from "@/lib/current-agent";
 import { Sidebar } from "@/components/sidebar";
 import { CommandPalette } from "@/components/command-palette";
 
@@ -9,12 +8,11 @@ export default async function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const profile = await prisma.businessProfile.findFirst();
-  if (!profile?.completedAt) {
+  const agent = await getCurrentAgent();
+  const business = await getCurrentBusiness();
+  if (!business.completedAt) {
     redirect("/setup");
   }
-
-  const agent = await getCurrentAgent();
 
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row">

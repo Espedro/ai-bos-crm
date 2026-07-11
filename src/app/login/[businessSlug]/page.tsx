@@ -1,21 +1,23 @@
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { BusinessPickerForm } from "@/components/business-picker-form";
+import { LoginForm } from "@/components/login-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default async function LoginEntryPage() {
-  const session = await getSession();
+export default async function BusinessLoginPage({
+  params,
+}: {
+  params: Promise<{ businessSlug: string }>;
+}) {
+  const { businessSlug } = await params;
+  const [session, business] = await Promise.all([
+    getSession(),
+    prisma.business.findUnique({ where: { slug: businessSlug } }),
+  ]);
+
+  if (!business) notFound();
   if (session) redirect("/");
-
-  const businesses = await prisma.business.findMany({
-    select: { slug: true, name: true },
-    orderBy: { name: "asc" },
-  });
-
-  if (businesses.length === 0) redirect("/signup");
-  if (businesses.length === 1) redirect(`/login/${businesses[0].slug}`);
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-6 py-12">
@@ -25,19 +27,19 @@ export default async function LoginEntryPage() {
         </p>
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Find your business</CardTitle>
+            <CardTitle className="text-xl">Sign in</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Enter your business&apos;s workspace name to go to its sign-in page.
+              {business.name} team members sign in here to access the CRM.
             </p>
           </CardHeader>
           <CardContent>
-            <BusinessPickerForm businesses={businesses} />
+            <LoginForm slug={business.slug} />
           </CardContent>
         </Card>
         <p className="text-center text-xs text-muted-foreground">
-          New here?{" "}
-          <Link href="/signup" className="underline hover:text-foreground">
-            Create a workspace
+          Not {business.name}?{" "}
+          <Link href="/login" className="underline hover:text-foreground">
+            Find your business
           </Link>
         </p>
       </div>

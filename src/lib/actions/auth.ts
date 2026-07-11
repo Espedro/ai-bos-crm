@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
 import { sendCampaignEmail } from "@/lib/email/resend";
+import { slugify } from "@/lib/slugify";
 
 export type LoginState = { error: string } | undefined;
 
@@ -14,16 +15,24 @@ const MIN_PASSWORD_LENGTH = 8;
 const RESET_TOKEN_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
+  const slug = String(formData.get("slug") ?? "").trim();
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
+  if (!slug || !email || !password) {
     return { error: "Email and password are required." };
   }
 
-  const agent = await prisma.agent.findUnique({ where: { email } });
+  const business = await prisma.business.findUnique({ where: { slug } });
+  if (!business) {
+    return { error: "Business not found." };
+  }
+
+  const agent = await prisma.agent.findUnique({
+    where: { businessId_email: { businessId: business.id, email } },
+  });
   if (!agent) {
     return { error: "No account found for that email." };
   }
@@ -52,6 +61,41 @@ export async function logout() {
   redirect("/login");
 }
 
+export type SignupState = { error: string } | undefined;
+
+/** Public: creates a brand-new Business (tenant) plus its first Agent
+ * (always ADMIN), then sends them to claim their password via the normal
+ * first-login flow. This is the "Standard" tier's self-serve onboarding —
+ * a Private-tier client only ever goes through this once, for themselves. */
+export async function signup(_prevState: SignupState, formData: FormData): Promise<SignupState> {
+  const businessName = String(formData.get("businessName") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!businessName || !name || !email) {
+    return { error: "All fields are required." };
+  }
+
+  const baseSlug = slugify(businessName, "business");
+  let slug = baseSlug;
+  let suffix = 1;
+  while (await prisma.business.findUnique({ where: { slug } })) {
+    slug = `${baseSlug}-${++suffix}`;
+  }
+
+  const business = await prisma.business.create({
+    data: { slug, name: businessName },
+  });
+
+  await prisma.agent.create({
+    data: { businessId: business.id, name, email, role: "ADMIN" },
+  });
+
+  redirect(`/login/${slug}`);
+}
+
 export type RequestResetState = { message: string; error?: boolean } | undefined;
 
 /**
@@ -63,16 +107,24 @@ export async function requestPasswordReset(
   _prevState: RequestResetState,
   formData: FormData
 ): Promise<RequestResetState> {
+  const slug = String(formData.get("slug") ?? "").trim();
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
   const genericMessage = "If that email has an account, we've sent a reset link to it.";
 
-  if (!email) {
+  if (!slug || !email) {
     return { message: "Enter your email.", error: true };
   }
 
-  const agent = await prisma.agent.findUnique({ where: { email } });
+  const business = await prisma.business.findUnique({ where: { slug } });
+  if (!business) {
+    return { message: genericMessage };
+  }
+
+  const agent = await prisma.agent.findUnique({
+    where: { businessId_email: { businessId: business.id, email } },
+  });
   if (!agent || !agent.passwordHash) {
     // Unknown email, or never claimed yet (claiming happens via /login instead).
     return { message: genericMessage };

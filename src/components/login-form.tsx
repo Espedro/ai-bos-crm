@@ -17,11 +17,12 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ slug }: { slug: string }) {
   const [state, formAction] = useActionState<LoginState, FormData>(login, undefined);
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="slug" value={slug} />
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
@@ -29,7 +30,10 @@ export function LoginForm() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Link href="/login/forgot" className="text-xs text-muted-foreground hover:text-foreground">
+          <Link
+            href={`/login/${slug}/forgot`}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
             Forgot password?
           </Link>
         </div>

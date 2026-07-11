@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { ResetPasswordForm } from "@/components/reset-password-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +9,8 @@ export default async function ResetPasswordPage({
 }: {
   searchParams: Promise<{ token?: string }>;
 }) {
-  const [session, profile, params] = await Promise.all([
-    getSession(),
-    prisma.businessProfile.findFirst(),
-    searchParams,
-  ]);
+  const [session, params] = await Promise.all([getSession(), searchParams]);
 
-  if (!profile?.completedAt) redirect("/setup");
   if (session) redirect("/");
 
   const token = params.token ?? "";
@@ -36,11 +30,11 @@ export default async function ResetPasswordPage({
               <ResetPasswordForm token={token} />
             ) : (
               <p className="text-sm text-muted-foreground">
-                This reset link is missing its token. Request a new one from the{" "}
-                <Link href="/login/forgot" className="text-foreground underline">
-                  forgot password
-                </Link>{" "}
-                page.
+                This reset link is missing its token. Request a new one from your{" "}
+                <Link href="/login" className="text-foreground underline">
+                  sign-in page
+                </Link>
+                .
               </p>
             )}
           </CardContent>

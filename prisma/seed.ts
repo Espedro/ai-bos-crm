@@ -14,29 +14,44 @@ const STAGES = [
 ];
 
 async function main() {
-  await prisma.message.deleteMany();
-  await prisma.conversation.deleteMany();
-  await prisma.businessResource.deleteMany();
-  await prisma.activityEvent.deleteMany();
-  await prisma.note.deleteMany();
-  await prisma.task.deleteMany();
-  await prisma.deal.deleteMany();
-  await prisma.stage.deleteMany();
-  await prisma.contact.deleteMany();
-  await prisma.company.deleteMany();
-  await prisma.agent.deleteMany();
+  // Scoped to this seed's own demo business only — never touch other
+  // businesses' data (this script runs against the shared production DB).
+  const existing = await prisma.business.findUnique({ where: { slug: "aibos-demo" } });
+  if (existing) {
+    const businessId = existing.id;
+    await prisma.message.deleteMany({ where: { businessId } });
+    await prisma.conversation.deleteMany({ where: { businessId } });
+    await prisma.businessResource.deleteMany({ where: { businessId } });
+    await prisma.activityEvent.deleteMany({ where: { businessId } });
+    await prisma.note.deleteMany({ where: { businessId } });
+    await prisma.task.deleteMany({ where: { businessId } });
+    await prisma.deal.deleteMany({ where: { businessId } });
+    await prisma.stage.deleteMany({ where: { businessId } });
+    await prisma.contact.deleteMany({ where: { businessId } });
+    await prisma.company.deleteMany({ where: { businessId } });
+    await prisma.agent.deleteMany({ where: { businessId } });
+    await prisma.business.delete({ where: { id: businessId } });
+  }
+
+  const business = await prisma.business.create({
+    data: { slug: "aibos-demo", name: "AI BOS Demo" },
+  });
+  const businessId = business.id;
 
   const stages = await Promise.all(
-    STAGES.map((name, order) => prisma.stage.create({ data: { name, order } }))
+    STAGES.map((name, order) => prisma.stage.create({ data: { businessId, name, order } }))
   );
 
   const [alice, ben] = await Promise.all([
-    prisma.agent.create({ data: { name: "Alice Moreau", email: "alice@aibos.dev" } }),
-    prisma.agent.create({ data: { name: "Ben Charles", email: "ben@aibos.dev" } }),
+    prisma.agent.create({
+      data: { businessId, name: "Alice Moreau", email: "alice@aibos.dev", role: "ADMIN" },
+    }),
+    prisma.agent.create({ data: { businessId, name: "Ben Charles", email: "ben@aibos.dev" } }),
   ]);
 
   const company = await prisma.company.create({
     data: {
+      businessId,
       name: "Auto Excellence SA",
       industry: "Automotive",
       website: "https://autoexcellence.example.com",
@@ -47,6 +62,7 @@ async function main() {
 
   const contact = await prisma.contact.create({
     data: {
+      businessId,
       firstName: "Jean",
       lastName: "Baptiste",
       email: "jean.baptiste@example.com",
@@ -61,6 +77,7 @@ async function main() {
 
   await prisma.activityEvent.create({
     data: {
+      businessId,
       type: "CONTACT_CREATED",
       description: "Jean Baptiste was added as a contact.",
       contactId: contact.id,
@@ -69,6 +86,7 @@ async function main() {
 
   const secondContact = await prisma.contact.create({
     data: {
+      businessId,
       firstName: "Marie",
       lastName: "Louis",
       email: "marie.louis@example.com",
@@ -81,6 +99,7 @@ async function main() {
 
   await prisma.activityEvent.create({
     data: {
+      businessId,
       type: "CONTACT_CREATED",
       description: "Marie Louis was added as a contact.",
       contactId: secondContact.id,
@@ -89,6 +108,7 @@ async function main() {
 
   const deal = await prisma.deal.create({
     data: {
+      businessId,
       title: "SUV Financing Deal",
       value: 25000,
       currency: "USD",
@@ -101,6 +121,7 @@ async function main() {
 
   await prisma.activityEvent.create({
     data: {
+      businessId,
       type: "DEAL_CREATED",
       description: "Deal 'SUV Financing Deal' created.",
       contactId: contact.id,
@@ -110,6 +131,7 @@ async function main() {
 
   await prisma.task.create({
     data: {
+      businessId,
       title: "Follow up on financing application",
       dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2),
       contactId: contact.id,
@@ -120,6 +142,7 @@ async function main() {
 
   await prisma.note.create({
     data: {
+      businessId,
       body: "Customer is interested in a 48-month financing plan.",
       contactId: contact.id,
       dealId: deal.id,
@@ -129,6 +152,7 @@ async function main() {
 
   await prisma.businessResource.create({
     data: {
+      businessId,
       title: "SUV Financing Plan",
       category: "PRODUCT",
       content:
@@ -137,17 +161,19 @@ async function main() {
   });
 
   const conversation = await prisma.conversation.create({
-    data: { contactId: contact.id },
+    data: { businessId, contactId: contact.id },
   });
 
   await prisma.message.createMany({
     data: [
       {
+        businessId,
         conversationId: conversation.id,
         sender: "CUSTOMER",
         body: "Eske nou gen finansman pou SUV?",
       },
       {
+        businessId,
         conversationId: conversation.id,
         sender: "AI",
         body: 'Men sa m jwenn sou "SUV Financing Plan":\n\nWe offer 24, 36, and 48-month financing plans on all SUVs with 0% down for qualified buyers.',
@@ -157,6 +183,7 @@ async function main() {
 
   await prisma.activityEvent.create({
     data: {
+      businessId,
       type: "CONVERSATION_STARTED",
       description: "A new WhatsApp conversation was started.",
       contactId: contact.id,

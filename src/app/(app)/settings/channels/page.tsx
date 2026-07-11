@@ -1,12 +1,12 @@
 import { headers } from "next/headers";
 import { getChannelConnections } from "@/lib/actions/channels";
-import { getBusinessProfile, updateEmailSettings } from "@/lib/actions/business";
+import { updateEmailSettings } from "@/lib/actions/business";
 import { getTikTokConnection } from "@/lib/actions/tiktok";
 import { WhatsAppConnectionCard } from "@/components/whatsapp-connection-card";
 import { MetaMessagingConnectionCard } from "@/components/meta-messaging-connection-card";
 import { TikTokAdsConnectionCard } from "@/components/tiktok-ads-connection-card";
 import { SettingsNav } from "@/components/settings-nav";
-import { requireAdminPage } from "@/lib/current-agent";
+import { requireAdminPage, getCurrentBusiness } from "@/lib/current-agent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +19,11 @@ export default async function ChannelsSettingsPage({
 }) {
   await requireAdminPage();
 
-  const [connections, hdrs, params, profile, tiktok] = await Promise.all([
+  const [connections, hdrs, params, business, tiktok] = await Promise.all([
     getChannelConnections(),
     headers(),
     searchParams,
-    getBusinessProfile(),
+    getCurrentBusiness(),
     getTikTokConnection(),
   ]);
   const [whatsapp, facebook, instagram] = connections;
@@ -105,7 +105,7 @@ export default async function ChannelsSettingsPage({
               <Input
                 id="emailFromName"
                 name="emailFromName"
-                defaultValue={profile?.emailFromName ?? ""}
+                defaultValue={business?.emailFromName ?? ""}
                 placeholder="e.g. Interstate Auto Center"
               />
             </div>
@@ -115,7 +115,7 @@ export default async function ChannelsSettingsPage({
                 id="emailFromAddress"
                 name="emailFromAddress"
                 type="email"
-                defaultValue={profile?.emailFromAddress ?? ""}
+                defaultValue={business?.emailFromAddress ?? ""}
                 placeholder="hello@yourdomain.com"
               />
             </div>

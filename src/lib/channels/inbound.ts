@@ -23,6 +23,7 @@ export async function processInboundMessage(params: {
   const { connection, channel, externalThreadId, senderDisplayName, text } = params;
 
   const conversation = await findOrCreateConversationForExternalThread({
+    businessId: connection.businessId,
     channelConnectionId: connection.id,
     channel,
     externalThreadId,

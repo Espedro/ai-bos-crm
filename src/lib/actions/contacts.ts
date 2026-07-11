@@ -4,19 +4,22 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdminAction } from "@/lib/current-agent";
+import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 import type { ContactStatus } from "@prisma/client";
 
 export async function getContacts() {
+  const agent = await getCurrentAgent();
   return prisma.contact.findMany({
+    where: { businessId: agent.businessId },
     include: { company: true, assignedAgent: true },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getContact(id: string) {
-  return prisma.contact.findUnique({
-    where: { id },
+  const agent = await getCurrentAgent();
+  return prisma.contact.findFirst({
+    where: { id, businessId: agent.businessId },
     include: {
       company: true,
       assignedAgent: true,
@@ -29,6 +32,7 @@ export async function getContact(id: string) {
 }
 
 export async function createContact(formData: FormData) {
+  const agent = await getCurrentAgent();
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   if (!firstName || !lastName) throw new Error("First and last name are required");
@@ -38,6 +42,7 @@ export async function createContact(formData: FormData) {
 
   const contact = await prisma.contact.create({
     data: {
+      businessId: agent.businessId,
       firstName,
       lastName,
       email: String(formData.get("email") ?? "") || null,
@@ -50,6 +55,7 @@ export async function createContact(formData: FormData) {
   });
 
   await logActivity({
+    businessId: agent.businessId,
     type: "CONTACT_CREATED",
     description: `${contact.firstName} ${contact.lastName} was added as a contact.`,
     contactId: contact.id,
@@ -60,8 +66,8 @@ export async function createContact(formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  await requireAdminAction();
-  await prisma.contact.delete({ where: { id } });
+  const agent = await requireAdminAction();
+  await prisma.contact.deleteMany({ where: { id, businessId: agent.businessId } });
   revalidatePath("/contacts");
   redirect("/contacts");
 }

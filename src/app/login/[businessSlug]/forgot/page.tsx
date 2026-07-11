@@ -1,14 +1,22 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { ForgotPasswordForm } from "@/components/forgot-password-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default async function ForgotPasswordPage() {
-  const [session, profile] = await Promise.all([getSession(), prisma.businessProfile.findFirst()]);
+export default async function BusinessForgotPasswordPage({
+  params,
+}: {
+  params: Promise<{ businessSlug: string }>;
+}) {
+  const { businessSlug } = await params;
+  const [session, business] = await Promise.all([
+    getSession(),
+    prisma.business.findUnique({ where: { slug: businessSlug } }),
+  ]);
 
-  if (!profile?.completedAt) redirect("/setup");
+  if (!business) notFound();
   if (session) redirect("/");
 
   return (
@@ -25,9 +33,9 @@ export default async function ForgotPasswordPage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ForgotPasswordForm />
+            <ForgotPasswordForm slug={business.slug} />
             <Link
-              href="/login"
+              href={`/login/${business.slug}`}
               className="block text-center text-xs text-muted-foreground hover:text-foreground"
             >
               Back to sign in

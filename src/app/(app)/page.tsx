@@ -111,19 +111,36 @@ export default async function DashboardPage() {
     leadTrend,
     recentActivity,
   ] = await Promise.all([
-    prisma.contact.count({ where: { status: "LEAD" } }),
+    prisma.contact.count({ where: { businessId: agent.businessId, status: "LEAD" } }),
     getDealsByStage(),
-    prisma.task.count({ where: { completed: false, dueDate: { lt: startOfToday } } }),
-    prisma.conversation.count({ where: { status: { not: "CLOSED" } } }),
-    prisma.conversation.count({ where: { status: "ESCALATED" } }),
-    prisma.contact.count({ where: { status: "LEAD", createdAt: { gte: sevenDaysAgo } } }),
-    prisma.contact.count({
-      where: { status: "LEAD", createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } },
+    prisma.task.count({
+      where: { businessId: agent.businessId, completed: false, dueDate: { lt: startOfToday } },
     }),
-    prisma.deal.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-    prisma.deal.count({ where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
+    prisma.conversation.count({
+      where: { businessId: agent.businessId, status: { not: "CLOSED" } },
+    }),
+    prisma.conversation.count({ where: { businessId: agent.businessId, status: "ESCALATED" } }),
+    prisma.contact.count({
+      where: { businessId: agent.businessId, status: "LEAD", createdAt: { gte: sevenDaysAgo } },
+    }),
+    prisma.contact.count({
+      where: {
+        businessId: agent.businessId,
+        status: "LEAD",
+        createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo },
+      },
+    }),
+    prisma.deal.count({
+      where: { businessId: agent.businessId, createdAt: { gte: sevenDaysAgo } },
+    }),
+    prisma.deal.count({
+      where: {
+        businessId: agent.businessId,
+        createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo },
+      },
+    }),
     getLeadTrend(14),
-    getRecentActivity(8),
+    getRecentActivity(agent.businessId, 8),
   ]);
 
   const openStages = stages.filter((s) => s.name !== "Won" && s.name !== "Lost");

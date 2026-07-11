@@ -3,13 +3,17 @@
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
+import { getCurrentAgent } from "@/lib/current-agent";
 
 export async function getStages() {
-  return prisma.stage.findMany({ orderBy: { order: "asc" } });
+  const agent = await getCurrentAgent();
+  return prisma.stage.findMany({ where: { businessId: agent.businessId }, orderBy: { order: "asc" } });
 }
 
 export async function getDealsByStage() {
+  const agent = await getCurrentAgent();
   return prisma.stage.findMany({
+    where: { businessId: agent.businessId },
     orderBy: { order: "asc" },
     include: {
       deals: {
@@ -21,6 +25,7 @@ export async function getDealsByStage() {
 }
 
 export async function createDeal(formData: FormData) {
+  const agent = await getCurrentAgent();
   const title = String(formData.get("title") ?? "").trim();
   const contactId = String(formData.get("contactId") ?? "");
   const stageId = String(formData.get("stageId") ?? "");
@@ -28,10 +33,13 @@ export async function createDeal(formData: FormData) {
     throw new Error("Title, contact, and stage are required");
   }
 
-  const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+  const contact = await prisma.contact.findFirst({
+    where: { id: contactId, businessId: agent.businessId },
+  });
 
   const deal = await prisma.deal.create({
     data: {
+      businessId: agent.businessId,
       title,
       contactId,
       stageId,
@@ -43,6 +51,7 @@ export async function createDeal(formData: FormData) {
   });
 
   await logActivity({
+    businessId: agent.businessId,
     type: "DEAL_CREATED",
     description: `Deal '${deal.title}' created.`,
     contactId,
@@ -54,16 +63,21 @@ export async function createDeal(formData: FormData) {
 }
 
 export async function moveDealToStage(dealId: string, stageId: string) {
+  const agent = await getCurrentAgent();
   const [deal, stage] = await Promise.all([
-    prisma.deal.findUniqueOrThrow({ where: { id: dealId } }),
-    prisma.stage.findUniqueOrThrow({ where: { id: stageId } }),
+    prisma.deal.findFirstOrThrow({ where: { id: dealId, businessId: agent.businessId } }),
+    prisma.stage.findFirstOrThrow({ where: { id: stageId, businessId: agent.businessId } }),
   ]);
 
   if (deal.stageId === stageId) return;
 
-  await prisma.deal.update({ where: { id: dealId }, data: { stageId } });
+  await prisma.deal.updateMany({
+    where: { id: dealId, businessId: agent.businessId },
+    data: { stageId },
+  });
 
   await logActivity({
+    businessId: agent.businessId,
     type: "STAGE_CHANGED",
     description: `Deal '${deal.title}' moved to stage '${stage.name}'.`,
     contactId: deal.contactId,

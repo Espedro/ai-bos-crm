@@ -9,7 +9,7 @@ import {
   subscribeAppToWaba,
   fetchPhoneNumberDisplayName,
 } from "@/lib/channels/whatsappEmbeddedSignup";
-import { requireAdminActionIfOnboarded } from "@/lib/current-agent";
+import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 
 const REAL_CHANNELS: ConversationChannel[] = ["WHATSAPP", "FACEBOOK", "INSTAGRAM"];
 
@@ -18,23 +18,26 @@ function generateVerifyToken() {
 }
 
 /**
- * Ensures a ChannelConnection row exists for every real channel, so the
- * Settings page always has a webhook URL + verify token to show the
- * client immediately, even before they've pasted in any credentials.
+ * Ensures a ChannelConnection row exists for every real channel for the
+ * current business, so the Settings page always has a webhook URL + verify
+ * token to show the client immediately, even before they've pasted in any
+ * credentials.
  */
 export async function getChannelConnections() {
+  const agent = await getCurrentAgent();
+
   await Promise.all(
     REAL_CHANNELS.map((channel) =>
       prisma.channelConnection.upsert({
-        where: { channel },
+        where: { businessId_channel: { businessId: agent.businessId, channel } },
         update: {},
-        create: { channel, webhookVerifyToken: generateVerifyToken() },
+        create: { businessId: agent.businessId, channel, webhookVerifyToken: generateVerifyToken() },
       })
     )
   );
 
   const connections = await prisma.channelConnection.findMany({
-    where: { channel: { in: REAL_CHANNELS } },
+    where: { businessId: agent.businessId, channel: { in: REAL_CHANNELS } },
   });
 
   return REAL_CHANNELS.map(
@@ -43,9 +46,9 @@ export async function getChannelConnections() {
 }
 
 export async function saveWhatsAppCredentials(formData: FormData) {
-  await requireAdminActionIfOnboarded();
+  const agent = await requireAdminAction();
   await prisma.channelConnection.update({
-    where: { channel: "WHATSAPP" },
+    where: { businessId_channel: { businessId: agent.businessId, channel: "WHATSAPP" } },
     data: {
       accessToken: String(formData.get("accessToken") ?? "").trim() || null,
       phoneNumberId: String(formData.get("phoneNumberId") ?? "").trim() || null,
@@ -72,14 +75,14 @@ export async function connectWhatsAppEmbeddedSignup(
   wabaId: string,
   phoneNumberId: string
 ): Promise<EmbeddedSignupState> {
-  await requireAdminActionIfOnboarded();
+  const agent = await requireAdminAction();
   try {
     const accessToken = await exchangeEmbeddedSignupCode(code);
     await subscribeAppToWaba(wabaId, accessToken);
     const displayName = await fetchPhoneNumberDisplayName(phoneNumberId, accessToken);
 
     await prisma.channelConnection.update({
-      where: { channel: "WHATSAPP" },
+      where: { businessId_channel: { businessId: agent.businessId, channel: "WHATSAPP" } },
       data: {
         accessToken,
         phoneNumberId,
@@ -102,9 +105,9 @@ export async function saveMetaMessagingCredentials(
   channel: "FACEBOOK" | "INSTAGRAM",
   formData: FormData
 ) {
-  await requireAdminActionIfOnboarded();
+  const agent = await requireAdminAction();
   await prisma.channelConnection.update({
-    where: { channel },
+    where: { businessId_channel: { businessId: agent.businessId, channel } },
     data: {
       accessToken: String(formData.get("accessToken") ?? "").trim() || null,
       pageId: String(formData.get("pageId") ?? "").trim() || null,
@@ -118,9 +121,9 @@ export async function saveMetaMessagingCredentials(
 }
 
 export async function disconnectChannel(channel: ConversationChannel) {
-  await requireAdminActionIfOnboarded();
+  const agent = await requireAdminAction();
   await prisma.channelConnection.update({
-    where: { channel },
+    where: { businessId_channel: { businessId: agent.businessId, channel } },
     data: {
       accessToken: null,
       phoneNumberId: null,

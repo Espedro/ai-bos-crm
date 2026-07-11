@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAdminActionIfOnboarded } from "@/lib/current-agent";
+import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 
 /**
  * Ensures a TikTokAdsConnection row exists (upsert-on-first-access, same
@@ -10,17 +10,18 @@ import { requireAdminActionIfOnboarded } from "@/lib/current-agent";
  * something to render even before the business connects.
  */
 export async function getTikTokConnection() {
-  const existing = await prisma.tikTokAdsConnection.findFirst();
-  if (existing) return existing;
-  return prisma.tikTokAdsConnection.create({ data: {} });
+  const agent = await getCurrentAgent();
+  return prisma.tikTokAdsConnection.upsert({
+    where: { businessId: agent.businessId },
+    update: {},
+    create: { businessId: agent.businessId },
+  });
 }
 
 export async function disconnectTikTok() {
-  await requireAdminActionIfOnboarded();
-  const connection = await prisma.tikTokAdsConnection.findFirst();
-  if (!connection) return;
-  await prisma.tikTokAdsConnection.update({
-    where: { id: connection.id },
+  const agent = await requireAdminAction();
+  await prisma.tikTokAdsConnection.updateMany({
+    where: { businessId: agent.businessId },
     data: {
       accessToken: null,
       advertiserId: null,
