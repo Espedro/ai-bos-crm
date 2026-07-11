@@ -11,7 +11,7 @@ import {
   subscribeAppToWaba,
   fetchPhoneNumberDisplayName,
 } from "@/lib/channels/whatsappEmbeddedSignup";
-import { fetchManagedPages } from "@/lib/channels/facebookOAuth";
+import { fetchManagedPages, subscribeAppToPage } from "@/lib/channels/facebookOAuth";
 import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
 
 const REAL_CHANNELS: ConversationChannel[] = ["WHATSAPP", "FACEBOOK", "INSTAGRAM"];
@@ -197,6 +197,8 @@ export async function connectFacebookPage(pageId: string) {
   if (!page) {
     redirect("/settings/channels?fb_error=page_not_found");
   }
+
+  await subscribeAppToPage(page.id, page.access_token);
 
   await prisma.channelConnection.update({
     where: { businessId_channel: { businessId: agent.businessId, channel: "FACEBOOK" } },

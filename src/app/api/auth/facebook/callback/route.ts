@@ -4,6 +4,7 @@ import {
   exchangeCodeForUserToken,
   exchangeForLongLivedUserToken,
   fetchManagedPages,
+  subscribeAppToPage,
 } from "@/lib/channels/facebookOAuth";
 
 const STATE_COOKIE = "fb_oauth_state";
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
     }
 
     const page = pages[0];
+    await subscribeAppToPage(page.id, page.access_token);
 
     await prisma.channelConnection.update({
       where: { businessId_channel: { businessId, channel: "FACEBOOK" } },

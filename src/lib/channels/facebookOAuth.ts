@@ -90,3 +90,22 @@ export async function fetchManagedPages(longLivedUserToken: string): Promise<Fac
   });
   return data.data;
 }
+
+/**
+ * A Page showing as "connected" in our own DB doesn't mean Meta will push
+ * webhook events to us — that requires this app to be explicitly subscribed
+ * to the Page (see feedback_meta_channel_setup gotcha #1). Without this,
+ * inbound Messenger/comment webhooks simply never arrive, with no error
+ * anywhere to signal it.
+ */
+export async function subscribeAppToPage(pageId: string, pageAccessToken: string): Promise<void> {
+  const url = new URL(`https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/subscribed_apps`);
+  url.searchParams.set("subscribed_fields", "messages,feed");
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${pageAccessToken}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to subscribe app to Page (${response.status}): ${await response.text()}`);
+  }
+}
