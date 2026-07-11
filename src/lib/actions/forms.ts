@@ -4,6 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+const MAX_COVER_IMAGE_BYTES = 2 * 1024 * 1024;
+
+function readCoverImage(formData: FormData): string | null {
+  const value = String(formData.get("coverImageUrl") ?? "").trim();
+  if (!value) return null;
+  if (!value.startsWith("data:image/")) return null;
+  if (value.length > MAX_COVER_IMAGE_BYTES * 1.4) {
+    throw new Error("Cover image is too large (2MB max)");
+  }
+  return value;
+}
+
 function slugify(name: string): string {
   return (
     name
@@ -59,6 +71,7 @@ export async function createForm(formData: FormData) {
       name,
       slug,
       description: String(formData.get("description") ?? "").trim() || null,
+      coverImageUrl: readCoverImage(formData),
       collectPhone: formData.get("collectPhone") === "on",
       collectMessage: formData.get("collectMessage") === "on",
       customFields: JSON.stringify(customFields),
@@ -73,6 +86,17 @@ export async function createForm(formData: FormData) {
 export async function deleteForm(id: string) {
   await prisma.form.delete({ where: { id } });
   revalidatePath("/forms");
+}
+
+export async function updateFormCoverImage(id: string, dataUrl: string | null) {
+  if (dataUrl && dataUrl.length > MAX_COVER_IMAGE_BYTES * 1.4) {
+    throw new Error("Cover image is too large (2MB max)");
+  }
+  if (dataUrl && !dataUrl.startsWith("data:image/")) {
+    throw new Error("Invalid image");
+  }
+  await prisma.form.update({ where: { id }, data: { coverImageUrl: dataUrl } });
+  revalidatePath(`/forms/${id}`);
 }
 
 /**

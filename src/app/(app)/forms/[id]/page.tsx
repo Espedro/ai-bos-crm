@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getForm } from "@/lib/actions/forms";
 import { CopyableField } from "@/components/copyable-field";
 import { DeleteFormButton } from "@/components/delete-form-button";
+import { FormCoverImageEditor } from "@/components/form-cover-image-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +31,15 @@ export default async function FormDetailPage({
         </div>
         <DeleteFormButton id={form.id} redirectTo="/forms" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Cover image</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FormCoverImageEditor formId={form.id} initialUrl={form.coverImageUrl} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

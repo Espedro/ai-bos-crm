@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { ChannelIcon } from "@/components/channel-icon";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import type { getConversations } from "@/lib/actions/conversations";
 
 type Conversation = Awaited<ReturnType<typeof getConversations>>[number];
@@ -34,6 +34,7 @@ export function ConversationList({
   query: string;
 }) {
   const [filter, setFilter] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -47,15 +48,35 @@ export function ConversationList({
 
   return (
     <>
-      <div className="shrink-0 border-b px-3 pb-3">
+      <div className="shrink-0 border-b px-3 py-3">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
+            ref={inputRef}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && filter) {
+                e.preventDefault();
+                setFilter("");
+              }
+            }}
             placeholder="Filter by name or message..."
-            className="h-8 w-full rounded-md border border-input bg-background pr-2 pl-8 text-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-8 w-full rounded-md border border-input bg-background pr-7 pl-8 text-xs outline-none placeholder:text-muted-foreground transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
           />
+          {filter && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilter("");
+                inputRef.current?.focus();
+              }}
+              aria-label="Clear filter"
+              className="absolute top-1/2 right-1.5 flex size-5 -translate-y-1/2 items-center justify-center text-muted-foreground transition-colors animate-in fade-in-0 zoom-in-95 duration-150 hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -69,7 +90,7 @@ export function ConversationList({
               key={conversation.id}
               href={`/inbox/${conversation.id}${query}`}
               className={cn(
-                "flex items-start gap-3 px-4 py-3 transition-colors",
+                "flex animate-in items-start gap-3 px-4 py-3 fade-in-0 transition-colors duration-150",
                 active ? "bg-primary/10" : "hover:bg-muted/50"
               )}
             >
@@ -113,7 +134,7 @@ export function ConversationList({
           );
         })}
         {filtered.length === 0 && conversations.length > 0 && (
-          <p className="px-4 py-6 text-sm text-muted-foreground">
+          <p className="animate-in px-4 py-6 fade-in-0 text-sm text-muted-foreground">
             No conversations match &ldquo;{filter}&rdquo;.
           </p>
         )}

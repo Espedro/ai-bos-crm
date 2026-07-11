@@ -30,6 +30,14 @@ export default async function PublicFormPage({
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-lg items-center px-6 py-12">
       <Card className="w-full">
+        {form.coverImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={form.coverImageUrl}
+            alt=""
+            className="h-40 w-full object-cover sm:h-52"
+          />
+        )}
         <CardHeader>
           <CardTitle className="text-2xl">{form.name}</CardTitle>
           {form.description && (

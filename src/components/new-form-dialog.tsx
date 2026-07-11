@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { createForm } from "@/lib/actions/forms";
+import { CoverImageField } from "@/components/cover-image-field";
 
 type FieldType = "text" | "textarea" | "select";
 
@@ -85,6 +86,7 @@ export function NewFormDialog() {
             <Label htmlFor="form-description">Description (optional)</Label>
             <Textarea id="form-description" name="description" rows={2} />
           </div>
+          <CoverImageField />
           <div className="flex gap-4">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="collectPhone" defaultChecked className="size-4" />

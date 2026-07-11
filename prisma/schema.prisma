@@ -237,6 +237,8 @@ model Form {
   name           String
   slug           String   @unique
   description    String?
+  /// Header image shown at the top of the public form, stored as a data URI.
+  coverImageUrl  String?
   collectPhone   Boolean  @default(true)
   collectMessage Boolean  @default(true)
   /// JSON array of extra fields: [{ "label": string }]
