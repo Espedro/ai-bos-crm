@@ -16,4 +16,5 @@ export async function createAgent(formData: FormData) {
   await prisma.agent.create({ data: { name, email } });
 
   revalidatePath("/setup");
+  revalidatePath("/settings/team");
 }

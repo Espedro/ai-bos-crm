@@ -6,6 +6,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { OPEN_COMMAND_PALETTE_EVENT } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { logout } from "@/lib/actions/auth";
 import {
   LayoutDashboard,
   Users,
@@ -24,6 +25,7 @@ import {
   Send,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 
 const topLinks = [
@@ -81,7 +83,7 @@ const navItemActive = "bg-sidebar-primary text-sidebar-primary-foreground shadow
 const navItemInactive =
   "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground";
 
-export function Sidebar() {
+export function Sidebar({ agentName }: { agentName?: string } = {}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const channel = searchParams.get("channel");
@@ -224,8 +226,23 @@ export function Sidebar() {
       </nav>
 
         <div className="flex items-center justify-between border-t border-sidebar-border px-6 py-4">
-          <p className="text-xs text-muted-foreground">One Platform. Every Conversation.</p>
-          <ThemeToggle className="-mr-1" />
+          <p className="truncate text-xs font-medium text-sidebar-foreground/80" title={agentName}>
+            {agentName ?? "One Platform. Every Conversation."}
+          </p>
+          <div className="flex shrink-0 items-center">
+            <ThemeToggle />
+            {agentName && (
+              <form action={logout}>
+                <button
+                  type="submit"
+                  aria-label="Log out"
+                  className="flex size-7 items-center justify-center rounded-lg text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  <LogOut className="size-4" />
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </aside>
     </>

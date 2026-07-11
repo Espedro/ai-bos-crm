@@ -80,6 +80,10 @@ model Agent {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
+  /// Set on first login (account "claim") — null means this agent hasn't
+  /// signed in yet, so the login form treats the submitted password as the
+  /// one to set rather than one to verify.
+  passwordHash String?
   createdAt DateTime @default(now())
 
   assignedContacts      Contact[]

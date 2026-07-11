@@ -5,6 +5,7 @@ import { getTikTokConnection } from "@/lib/actions/tiktok";
 import { WhatsAppConnectionCard } from "@/components/whatsapp-connection-card";
 import { MetaMessagingConnectionCard } from "@/components/meta-messaging-connection-card";
 import { TikTokAdsConnectionCard } from "@/components/tiktok-ads-connection-card";
+import { SettingsNav } from "@/components/settings-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,11 @@ export default async function ChannelsSettingsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Channel Connections</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      </div>
+      <SettingsNav />
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Channel Connections</h2>
         <p className="text-sm text-muted-foreground">
           Connect your own WhatsApp Business, Facebook Page, and Instagram accounts so
           the AI Employee can answer real customer messages.
