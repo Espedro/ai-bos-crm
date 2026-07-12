@@ -92,3 +92,42 @@ export async function sendPublicCommentReply(
     throw new Error(`Comment reply failed (${response.status}): ${errorBody}`);
   }
 }
+
+/**
+ * Sends a one-time private message (DM) to whoever left a public comment —
+ * Meta's "Private Reply" feature (POST /{comment-id}/private_replies).
+ * Requires the read_page_mailboxes scope. Only works once per comment and
+ * only for a limited window (typically several months) after it was
+ * posted. Returns the commenter's app-scoped user id (their PSID), which
+ * doubles as the externalThreadId for a normal Messenger Conversation —
+ * any reply they send afterward arrives through the regular `messaging`
+ * webhook field and continues the same thread.
+ */
+export async function sendPrivateReply(
+  connection: ChannelConnection,
+  commentId: string,
+  text: string
+): Promise<{ messageId: string; userId: string }> {
+  if (!connection.accessToken) {
+    throw new Error("Connection is missing an access token");
+  }
+
+  const response = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${commentId}/private_replies?access_token=${encodeURIComponent(
+      connection.accessToken
+    )}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Private reply failed (${response.status}): ${errorBody}`);
+  }
+
+  const data = (await response.json()) as { id: string; user_id: string };
+  return { messageId: data.id, userId: data.user_id };
+}

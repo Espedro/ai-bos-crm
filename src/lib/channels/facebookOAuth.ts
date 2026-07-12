@@ -6,8 +6,9 @@ const GRAPH_API_VERSION = "v22.0";
  * webhooks (pages_read_engagement), reading the actual comment/post text
  * written by followers (pages_read_user_content — a hard dependency of
  * pages_manage_engagement, Facebook's OAuth dialog rejects the request
- * without it), and listing/subscribing the Page (pages_show_list,
- * pages_manage_metadata).
+ * without it), listing/subscribing the Page (pages_show_list,
+ * pages_manage_metadata), and sending a one-time private reply (DM) to a
+ * commenter (read_page_mailboxes).
  */
 const SCOPES = [
   "pages_show_list",
@@ -16,6 +17,7 @@ const SCOPES = [
   "pages_manage_engagement",
   "pages_read_engagement",
   "pages_read_user_content",
+  "read_page_mailboxes",
 ].join(",");
 
 function requireEnv(name: string): string {
