@@ -6,9 +6,17 @@ const GRAPH_API_VERSION = "v22.0";
  * webhooks (pages_read_engagement), reading the actual comment/post text
  * written by followers (pages_read_user_content — a hard dependency of
  * pages_manage_engagement, Facebook's OAuth dialog rejects the request
- * without it), listing/subscribing the Page (pages_show_list,
- * pages_manage_metadata), and sending a one-time private reply (DM) to a
- * commenter (read_page_mailboxes).
+ * without it), and listing/subscribing the Page (pages_show_list,
+ * pages_manage_metadata).
+ *
+ * NOT requesting read_page_mailboxes here (needed for Private Reply,
+ * see facebookComments.ts) — Meta's OAuth dialog rejects the ENTIRE scope
+ * string with "Invalid Scopes" if a permission isn't first enabled for
+ * this app in the App Dashboard's Permissions/Use Cases tab (confirmed
+ * live 2026-07-12, same pattern as the pages_read_user_content gotcha).
+ * Add it back here only after that's done in the dashboard — until then
+ * it would break reconnecting Facebook for every business, not just skip
+ * the one permission.
  */
 const SCOPES = [
   "pages_show_list",
@@ -17,7 +25,6 @@ const SCOPES = [
   "pages_manage_engagement",
   "pages_read_engagement",
   "pages_read_user_content",
-  "read_page_mailboxes",
 ].join(",");
 
 function requireEnv(name: string): string {
