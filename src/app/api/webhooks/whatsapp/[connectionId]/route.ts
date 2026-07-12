@@ -39,13 +39,15 @@ export async function POST(
         channel: "WHATSAPP",
         phoneNumberId: parsed.phoneNumberId,
       });
-      await processInboundMessage({
-        connection: realConnection,
-        channel: "WHATSAPP",
-        externalThreadId: parsed.externalThreadId,
-        senderDisplayName: parsed.senderDisplayName,
-        text: parsed.text,
-      });
+      if (realConnection) {
+        await processInboundMessage({
+          connection: realConnection,
+          channel: "WHATSAPP",
+          externalThreadId: parsed.externalThreadId,
+          senderDisplayName: parsed.senderDisplayName,
+          text: parsed.text,
+        });
+      }
     } catch (error) {
       console.error("WhatsApp inbound processing failed:", error);
     }

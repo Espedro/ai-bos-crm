@@ -31,16 +31,6 @@ export async function POST(
     return new Response("Bad Request", { status: 400 });
   }
 
-  // TEMPORARY diagnostic (remove once webhook delivery is confirmed):
-  // vercel logs is unreliable here, so dump the raw payload where we can
-  // actually query it.
-  await prisma.channelConnection.update({
-    where: { id: connectionId },
-    data: {
-      lastErrorMessage: `DEBUG ${new Date().toISOString()}: ${JSON.stringify(body).slice(0, 800)}`,
-    },
-  });
-
   // Page webhooks deliver both private messages (`messaging`) and public
   // feed activity like comments (`changes` with field "feed") to the same
   // callback URL — check both. Awaited deliberately: serverless functions
@@ -53,13 +43,15 @@ export async function POST(
         channel: "FACEBOOK",
         pageId: parsedMessage.recipientId,
       });
-      await processInboundMessage({
-        connection: realConnection,
-        channel: "FACEBOOK",
-        externalThreadId: parsedMessage.externalThreadId,
-        senderDisplayName: parsedMessage.senderDisplayName,
-        text: parsedMessage.text,
-      });
+      if (realConnection) {
+        await processInboundMessage({
+          connection: realConnection,
+          channel: "FACEBOOK",
+          externalThreadId: parsedMessage.externalThreadId,
+          senderDisplayName: parsedMessage.senderDisplayName,
+          text: parsedMessage.text,
+        });
+      }
     } catch (error) {
       console.error("Messenger inbound processing failed:", error);
     }
@@ -72,11 +64,13 @@ export async function POST(
         channel: "FACEBOOK",
         pageId: parsedComment.recipientId,
       });
-      await processInboundComment({
-        connection: realConnection,
-        channel: "FACEBOOK",
-        comment: parsedComment,
-      });
+      if (realConnection) {
+        await processInboundComment({
+          connection: realConnection,
+          channel: "FACEBOOK",
+          comment: parsedComment,
+        });
+      }
     } catch (error) {
       console.error("Facebook comment processing failed:", error);
     }

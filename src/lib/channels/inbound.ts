@@ -14,25 +14,32 @@ import type { ChannelConnection, ConversationChannel } from "@prisma/client";
  * connectionId in the webhook route's own path can't be trusted to
  * identify which business an event belongs to once more than one business
  * shares the app. Re-resolves the real ChannelConnection from the
- * payload's own Page ID / phone number ID instead, falling back to the
- * URL-derived connection only if no match is found (e.g. malformed
- * payload) so a single-business deployment keeps working unchanged.
+ * payload's own Page ID / phone number ID instead.
+ *
+ * Returns null (meaning: skip this event) when a real pageId/phoneNumberId
+ * was extracted but doesn't match any of our own ChannelConnection rows —
+ * e.g. a Page that's still subscribed to this Meta app from a stale/past
+ * connection, but isn't any current business's own Page. Silently falling
+ * back to the URL-derived connection here previously misattributed such
+ * events to whichever business happened to own the app's single hardcoded
+ * callback URL — a real cross-tenant mixup, not a safe default. Only falls
+ * back to the URL-derived connection when the payload had no identifying
+ * field at all (malformed/edge-case payload), which keeps a genuine
+ * single-business deployment working unchanged.
  */
 export async function resolveConnectionForRecipient(
   urlConnection: ChannelConnection,
   match: { channel: ConversationChannel; pageId?: string; phoneNumberId?: string }
-): Promise<ChannelConnection> {
+): Promise<ChannelConnection | null> {
   if (match.phoneNumberId) {
-    const found = await prisma.channelConnection.findFirst({
+    return prisma.channelConnection.findFirst({
       where: { channel: match.channel, phoneNumberId: match.phoneNumberId },
     });
-    if (found) return found;
   }
   if (match.pageId) {
-    const found = await prisma.channelConnection.findFirst({
+    return prisma.channelConnection.findFirst({
       where: { channel: match.channel, pageId: match.pageId },
     });
-    if (found) return found;
   }
   return urlConnection;
 }

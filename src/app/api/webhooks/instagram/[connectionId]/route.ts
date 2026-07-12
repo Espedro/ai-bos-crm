@@ -39,13 +39,15 @@ export async function POST(
         channel: "INSTAGRAM",
         pageId: parsed.recipientId,
       });
-      await processInboundMessage({
-        connection: realConnection,
-        channel: "INSTAGRAM",
-        externalThreadId: parsed.externalThreadId,
-        senderDisplayName: parsed.senderDisplayName,
-        text: parsed.text,
-      });
+      if (realConnection) {
+        await processInboundMessage({
+          connection: realConnection,
+          channel: "INSTAGRAM",
+          externalThreadId: parsed.externalThreadId,
+          senderDisplayName: parsed.senderDisplayName,
+          text: parsed.text,
+        });
+      }
     } catch (error) {
       console.error("Instagram inbound processing failed:", error);
     }
