@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getConversation } from "@/lib/actions/conversations";
 import { getAgents } from "@/lib/actions/agents";
+import { getStages } from "@/lib/actions/deals";
 import { Badge } from "@/components/ui/badge";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { ConversationStatusControls } from "@/components/conversation-status-controls";
+import { ConversationDealControl } from "@/components/conversation-deal-control";
 import { CustomerMessageForm } from "@/components/customer-message-form";
 import { AgentMessageForm } from "@/components/agent-message-form";
 import { InboxShell } from "@/components/inbox-shell";
@@ -82,7 +84,11 @@ export default async function ConversationDetailPage({
   const { id } = await params;
   const { channel: channelParam } = await searchParams;
   const channel = parseChannelParam(channelParam);
-  const [conversation, agents] = await Promise.all([getConversation(id), getAgents()]);
+  const [conversation, agents, stages] = await Promise.all([
+    getConversation(id),
+    getAgents(),
+    getStages(),
+  ]);
 
   if (!conversation) notFound();
 
@@ -131,6 +137,12 @@ export default async function ConversationDetailPage({
         </div>
         <ConversationStatusControls conversationId={conversation.id} status={conversation.status} />
       </div>
+
+      {conversation.contact.deals.length > 0 && (
+        <div className="shrink-0 border-b bg-muted/30 px-3 py-2 sm:px-5">
+          <ConversationDealControl deals={conversation.contact.deals} stages={stages} />
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4 sm:px-5">
         {thread.map((item) => {

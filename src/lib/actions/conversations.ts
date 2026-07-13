@@ -34,7 +34,11 @@ export async function getConversation(id: string) {
   return prisma.conversation.findFirst({
     where: { id, businessId: agent.businessId },
     include: {
-      contact: true,
+      contact: {
+        include: {
+          deals: { include: { stage: true }, orderBy: { createdAt: "desc" } },
+        },
+      },
       assignedAgent: true,
       messages: { orderBy: { createdAt: "asc" } },
     },
