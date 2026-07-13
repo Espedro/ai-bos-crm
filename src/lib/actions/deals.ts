@@ -3,11 +3,97 @@
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
-import { getCurrentAgent } from "@/lib/current-agent";
+import { getCurrentAgent, requireAdminAction } from "@/lib/current-agent";
 
 export async function getStages() {
   const agent = await getCurrentAgent();
   return prisma.stage.findMany({ where: { businessId: agent.businessId }, orderBy: { order: "asc" } });
+}
+
+/** Same as getStages, plus how many deals sit in each — used by the
+ * pipeline settings page so an admin can see what deleting a stage would
+ * affect before trying. */
+export async function getStagesWithDealCounts() {
+  const agent = await getCurrentAgent();
+  return prisma.stage.findMany({
+    where: { businessId: agent.businessId },
+    orderBy: { order: "asc" },
+    include: { _count: { select: { deals: true } } },
+  });
+}
+
+export async function createStage(formData: FormData) {
+  const agent = await requireAdminAction();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Name is required");
+
+  const last = await prisma.stage.findFirst({
+    where: { businessId: agent.businessId },
+    orderBy: { order: "desc" },
+  });
+
+  await prisma.stage.create({
+    data: { businessId: agent.businessId, name, order: (last?.order ?? -1) + 1 },
+  });
+
+  revalidatePath("/settings/pipeline");
+  revalidatePath("/deals");
+}
+
+export async function renameStage(stageId: string, name: string) {
+  const agent = await requireAdminAction();
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Name is required");
+
+  await prisma.stage.updateMany({
+    where: { id: stageId, businessId: agent.businessId },
+    data: { name: trimmed },
+  });
+
+  revalidatePath("/settings/pipeline");
+  revalidatePath("/deals");
+}
+
+export async function deleteStage(stageId: string) {
+  const agent = await requireAdminAction();
+  const stage = await prisma.stage.findFirstOrThrow({
+    where: { id: stageId, businessId: agent.businessId },
+    include: { _count: { select: { deals: true } } },
+  });
+
+  if (stage._count.deals > 0) {
+    throw new Error(
+      `Move or delete the ${stage._count.deals} deal(s) in "${stage.name}" before removing this stage.`
+    );
+  }
+
+  await prisma.stage.deleteMany({ where: { id: stageId, businessId: agent.businessId } });
+
+  revalidatePath("/settings/pipeline");
+  revalidatePath("/deals");
+}
+
+export async function moveStage(stageId: string, direction: "up" | "down") {
+  const agent = await requireAdminAction();
+  const stages = await prisma.stage.findMany({
+    where: { businessId: agent.businessId },
+    orderBy: { order: "asc" },
+  });
+
+  const index = stages.findIndex((s) => s.id === stageId);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= stages.length) return;
+
+  const current = stages[index];
+  const swapWith = stages[swapIndex];
+
+  await prisma.$transaction([
+    prisma.stage.update({ where: { id: current.id }, data: { order: swapWith.order } }),
+    prisma.stage.update({ where: { id: swapWith.id }, data: { order: current.order } }),
+  ]);
+
+  revalidatePath("/settings/pipeline");
+  revalidatePath("/deals");
 }
 
 export async function getDealsByStage() {

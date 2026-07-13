@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const tabs = [
+  { href: "/settings/general", label: "General" },
   { href: "/settings/channels", label: "Channels" },
   { href: "/settings/team", label: "Team" },
+  { href: "/settings/pipeline", label: "Pipeline" },
 ];
 
 export function SettingsNav() {
