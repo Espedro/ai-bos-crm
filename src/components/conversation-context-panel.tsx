@@ -1,5 +1,10 @@
+"use client";
+
+import { useTransition } from "react";
 import { PanelHeader } from "@/components/panel-header";
 import { ConversationDealControl } from "@/components/conversation-deal-control";
+import { Button } from "@/components/ui/button";
+import { setConversationStatus } from "@/lib/actions/conversations";
 import { CHANNEL_TITLES } from "@/lib/channel-ui";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -20,7 +25,21 @@ function InfoTile({ label, value }: { label: string; value: string }) {
   );
 }
 
+function nextBestAction(status: string, hasDeals: boolean): string {
+  if (status === "ESCALATED") {
+    return "Take over the chat and reply to the customer directly — they asked for a human.";
+  }
+  if (status === "CLOSED") {
+    return "This conversation is closed. Resume AI to reopen it, or leave it as-is.";
+  }
+  if (hasDeals) {
+    return "AI is handling this conversation. Check in if the linked deal hasn't moved in a while.";
+  }
+  return "AI is handling this conversation — no action needed right now.";
+}
+
 export function ConversationContextPanel({
+  conversationId,
   contact,
   channel,
   assignedAgentName,
@@ -29,6 +48,7 @@ export function ConversationContextPanel({
   deals,
   stages,
 }: {
+  conversationId: string;
   contact: { firstName: string; lastName: string; status: ContactStatus; leadScore: number };
   channel: ConversationChannel;
   assignedAgentName?: string;
@@ -37,6 +57,7 @@ export function ConversationContextPanel({
   deals: { id: string; title: string; stageId: string }[];
   stages: { id: string; name: string }[];
 }) {
+  const [isPending, startTransition] = useTransition();
   const aiActive = status === "AI_HANDLING";
 
   return (
@@ -85,6 +106,31 @@ export function ConversationContextPanel({
           >
             {aiActive ? "Active" : "Paused"}
           </span>
+        </div>
+      </div>
+
+      <div className="border-b p-4">
+        <h3 className="mb-2.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+          Next Best Action
+        </h3>
+        <p className="mb-3 text-sm text-muted-foreground">{nextBestAction(status, deals.length > 0)}</p>
+        <div className="flex flex-wrap gap-2">
+          {status === "AI_HANDLING" ? (
+            <Button
+              disabled={isPending}
+              onClick={() => startTransition(() => setConversationStatus(conversationId, "ESCALATED"))}
+            >
+              Take Over from AI
+            </Button>
+          ) : (
+            <Button
+              disabled={isPending}
+              className="bg-[var(--status-good)] text-white hover:bg-[var(--status-good)]/90"
+              onClick={() => startTransition(() => setConversationStatus(conversationId, "AI_HANDLING"))}
+            >
+              Resume AI
+            </Button>
+          )}
         </div>
       </div>
 

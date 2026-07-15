@@ -24,7 +24,7 @@ const bubbleStyles: Record<string, string> = {
 
 const senderLabels: Record<string, string> = {
   CUSTOMER: "Customer",
-  AI: "AI Employee",
+  AI: "AI Assistant",
   AGENT: "Agent",
 };
 
@@ -107,6 +107,7 @@ export default async function ConversationDetailPage({
       list={<ConversationListPane channel={channel} activeId={id} />}
       context={
         <ConversationContextPanel
+          conversationId={conversation.id}
           contact={conversation.contact}
           channel={conversation.channel}
           assignedAgentName={conversation.assignedAgent?.name}
@@ -201,7 +202,7 @@ export default async function ConversationDetailPage({
                     !isCustomer && "items-end"
                   )}
                 >
-                  <p className="px-1 text-xs font-medium text-muted-foreground">
+                  <p className="px-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
                     {senderLabels[sender]} · {format(messages[0].createdAt, "p")}
                   </p>
                   {messages.map((message) => (
@@ -229,7 +230,11 @@ export default async function ConversationDetailPage({
 
       <div className="shrink-0 space-y-3 border-t px-3 py-3 sm:px-5 sm:py-4">
         {conversation.status === "ESCALATED" ? (
-          <AgentMessageForm conversationId={conversation.id} agents={agents} />
+          <AgentMessageForm
+            conversationId={conversation.id}
+            contactId={conversation.contact.id}
+            agents={agents}
+          />
         ) : (
           <CustomerMessageForm conversationId={conversation.id} />
         )}

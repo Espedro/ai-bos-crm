@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { NoteForm } from "@/components/note-form";
 import {
   Select,
   SelectContent,
@@ -10,51 +11,94 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { sendAgentMessage } from "@/lib/actions/conversations";
+import { sendAgentMessage, getSuggestedReply } from "@/lib/actions/conversations";
 
 type Option = { id: string; name: string };
 
 export function AgentMessageForm({
   conversationId,
+  contactId,
   agents,
 }: {
   conversationId: string;
+  contactId: string;
   agents: Option[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [body, setBody] = useState("");
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [showNote, setShowNote] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    startTransition(async () => {
+      const reply = await getSuggestedReply(conversationId);
+      setSuggestion(reply);
+    });
+  }, [conversationId]);
 
   return (
-    <form
-      ref={formRef}
-      action={async (formData) => {
-        const body = String(formData.get("body") ?? "");
-        const agentId = String(formData.get("agentId") ?? "") || undefined;
-        formRef.current?.reset();
-        await sendAgentMessage(conversationId, body, agentId);
-      }}
-      className="space-y-2 rounded-lg border bg-muted/30 p-3"
-    >
-      <p className="text-xs font-medium text-muted-foreground">Reply as agent</p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <Textarea name="body" placeholder="Type your reply..." required rows={2} className="flex-1" />
-        <div className="flex flex-col gap-2 sm:w-[160px]">
-          <Select name="agentId">
-            <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="You" />
-            </SelectTrigger>
-            <SelectContent>
-              {agents.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button type="submit" className="w-full">
-            Send as Agent
-          </Button>
+    <div className="space-y-2">
+      {isPending && !suggestion && (
+        <p className="px-1 text-xs text-muted-foreground">Drafting a suggested reply…</p>
+      )}
+      {suggestion && (
+        <div className="border border-[var(--status-good)]/30 bg-[var(--status-good)]/10 p-3">
+          <p className="mb-1 text-[11px] font-bold tracking-wide text-[var(--status-good)] uppercase">
+            Suggested Reply
+          </p>
+          <p className="text-sm">{suggestion}</p>
         </div>
-      </div>
-    </form>
+      )}
+
+      {showNote && (
+        <div className="border bg-muted/30 p-3">
+          <NoteForm contactId={contactId} agents={agents} />
+        </div>
+      )}
+
+      <form
+        ref={formRef}
+        action={async (formData) => {
+          const text = String(formData.get("body") ?? "");
+          const agentId = String(formData.get("agentId") ?? "") || undefined;
+          setBody("");
+          formRef.current?.reset();
+          await sendAgentMessage(conversationId, text, agentId);
+        }}
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+      >
+        <Button type="button" variant="outline" onClick={() => setShowNote((v) => !v)}>
+          Note
+        </Button>
+        <Textarea
+          name="body"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Type a message..."
+          required
+          rows={1}
+          className="flex-1"
+        />
+        {suggestion && (
+          <Button type="button" variant="outline" onClick={() => setBody(suggestion)}>
+            Use AI Reply
+          </Button>
+        )}
+        <Select name="agentId">
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="You" />
+          </SelectTrigger>
+          <SelectContent>
+            {agents.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button type="submit">Send</Button>
+      </form>
+    </div>
   );
 }

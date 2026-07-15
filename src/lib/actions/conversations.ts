@@ -226,6 +226,38 @@ export async function findOrCreateConversationForExternalThread(params: {
   return conversation;
 }
 
+/**
+ * Regenerates what the AI Employee would say next, without sending or
+ * storing anything — lets an agent taking over an escalated conversation
+ * see (and edit) a real AI-drafted starting point instead of typing from
+ * scratch. Reuses the exact same engine as real customer replies.
+ */
+export async function getSuggestedReply(conversationId: string): Promise<string | null> {
+  const agent = await getCurrentAgent();
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: conversationId, businessId: agent.businessId },
+    include: { messages: { orderBy: { createdAt: "desc" }, take: 20 } },
+  });
+  if (!conversation) return null;
+
+  const lastCustomerMessage = conversation.messages.find((m) => m.sender === "CUSTOMER");
+  if (!lastCustomerMessage) return null;
+
+  const history = conversation.messages
+    .filter((m) => m.id !== lastCustomerMessage.id)
+    .slice()
+    .reverse()
+    .map((m) => ({ sender: m.sender, body: m.body }));
+
+  const [resources, business] = await Promise.all([
+    prisma.businessResource.findMany({ where: { businessId: agent.businessId } }),
+    prisma.business.findUnique({ where: { id: agent.businessId } }),
+  ]);
+
+  const { reply } = await generateAiReply(history, lastCustomerMessage.body, resources, business?.name);
+  return reply;
+}
+
 export async function sendCustomerMessage(conversationId: string, body: string) {
   const text = body.trim();
   if (!text) return;
@@ -255,6 +287,17 @@ export async function sendAgentMessage(
       updatedAt: new Date(),
       ...(assignedAgentId ? { assignedAgentId } : {}),
     },
+  });
+
+  revalidatePath(`/inbox/${conversationId}`);
+  revalidatePath("/inbox");
+}
+
+export async function assignConversationToSelf(conversationId: string) {
+  const agent = await getCurrentAgent();
+  await prisma.conversation.updateMany({
+    where: { id: conversationId, businessId: agent.businessId },
+    data: { assignedAgentId: agent.id },
   });
 
   revalidatePath(`/inbox/${conversationId}`);
