@@ -4,6 +4,7 @@ import { getCurrentAgent } from "@/lib/current-agent";
 import { getForms } from "@/lib/actions/forms";
 import { NewFormDialog } from "@/components/new-form-dialog";
 import { PanelHeader } from "@/components/panel-header";
+import { PageShell } from "@/components/page-shell";
 import { Card } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 
@@ -40,17 +41,12 @@ export default async function FormsPage() {
   const totalSubmissions = forms.reduce((sum, f) => sum + f._count.submissions, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Lead Capture Hub</h1>
-          <p className="text-sm text-muted-foreground">
-            Public forms connected to CRM intake — every submission becomes a Contact automatically.
-          </p>
-        </div>
-        <NewFormDialog />
-      </div>
-
+    <PageShell
+      kicker="Lead Capture Hub"
+      title="Forms"
+      actions={<NewFormDialog />}
+    >
+      <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Total Forms" value={forms.length} caption="live and collecting" />
         <StatTile label="Submissions" value={totalSubmissions} caption="all time" />
@@ -124,6 +120,7 @@ export default async function FormsPage() {
           )}
         </div>
       </Card>
-    </div>
+      </div>
+    </PageShell>
   );
 }

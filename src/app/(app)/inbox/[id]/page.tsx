@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getConversation } from "@/lib/actions/conversations";
+import { getConversation, getConversations } from "@/lib/actions/conversations";
 import { getAgents } from "@/lib/actions/agents";
 import { getStages } from "@/lib/actions/deals";
 import { EntityAvatar } from "@/components/entity-avatar";
@@ -10,7 +10,8 @@ import { CustomerMessageForm } from "@/components/customer-message-form";
 import { AgentMessageForm } from "@/components/agent-message-form";
 import { InboxShell } from "@/components/inbox-shell";
 import { ConversationListPane } from "@/components/conversation-list-pane";
-import { parseChannelParam } from "@/lib/channel-ui";
+import { PageShell } from "@/components/page-shell";
+import { CHANNEL_TITLES, parseChannelParam } from "@/lib/channel-ui";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { Bot, ArrowLeft } from "lucide-react";
@@ -89,10 +90,11 @@ export default async function ConversationDetailPage({
   const { id } = await params;
   const { channel: channelParam } = await searchParams;
   const channel = parseChannelParam(channelParam);
-  const [conversation, agents, stages] = await Promise.all([
+  const [conversation, agents, stages, conversations] = await Promise.all([
     getConversation(id),
     getAgents(),
     getStages(),
+    getConversations(channel),
   ]);
 
   if (!conversation) notFound();
@@ -103,6 +105,10 @@ export default async function ConversationDetailPage({
   const backHref = `/inbox${channel ? `?channel=${channel}` : ""}`;
 
   return (
+    <PageShell
+      kicker={`${conversations.length} conversation${conversations.length === 1 ? "" : "s"}`}
+      title={`AI Inbox / ${CHANNEL_TITLES[conversation.channel]}`}
+    >
     <InboxShell
       list={<ConversationListPane channel={channel} activeId={id} />}
       context={
@@ -240,5 +246,6 @@ export default async function ConversationDetailPage({
         )}
       </div>
     </InboxShell>
+    </PageShell>
   );
 }

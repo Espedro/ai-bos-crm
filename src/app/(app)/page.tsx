@@ -7,6 +7,7 @@ import { getCurrentAgent } from "@/lib/current-agent";
 import { Card } from "@/components/ui/card";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { PanelHeader } from "@/components/panel-header";
+import { PageShell } from "@/components/page-shell";
 import { cn } from "@/lib/utils";
 import { stageDotColor } from "@/lib/stage-colors";
 import { PipelineValueChart } from "@/components/dashboard/pipeline-value-chart";
@@ -180,9 +181,10 @@ export default async function DashboardPage() {
   const anyChannelConnected = channelConnections.some((c) => c.status === "CONNECTED");
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[28px] font-bold tracking-tight">Dashboard</h1>
+    <PageShell
+      kicker="AI CRM Command Center"
+      title="Dashboard"
+      actions={
         <span
           className={cn(
             "inline-flex h-8 items-center gap-2 border px-3 text-xs font-bold tracking-wide uppercase",
@@ -194,8 +196,9 @@ export default async function DashboardPage() {
           <span className="size-2 bg-current" />
           {anyChannelConnected ? "Automation Live" : "No channel connected"}
         </span>
-      </div>
-
+      }
+    >
+      <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="New Leads"
@@ -484,6 +487,7 @@ export default async function DashboardPage() {
         <PanelHeader title="Recent Activity" subtitle="Latest events across your CRM" />
         <RecentActivity events={recentActivity} />
       </Card>
-    </div>
+      </div>
+    </PageShell>
   );
 }
