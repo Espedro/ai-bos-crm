@@ -2,7 +2,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAdminAction, getCurrentAgent } from "@/lib/current-agent";
+import { headers } from "next/headers";
+import { requireAdminAction, getCurrentAgent, getCurrentBusiness } from "@/lib/current-agent";
+import { sendCampaignEmail, resolveFromAddress } from "@/lib/email/resend";
 import type { AgentRole } from "@prisma/client";
 
 export async function getAgents() {
@@ -32,6 +34,25 @@ export async function createAgent(formData: FormData) {
   });
 
   revalidatePath("/settings/team");
+
+  // Best-effort — the agent is already created and can still sign in at
+  // /login/{slug} even if this fails (e.g. no verified sending domain yet).
+  try {
+    const business = await getCurrentBusiness();
+    const hdrs = await headers();
+    const host = hdrs.get("host") ?? "localhost:3000";
+    const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+    const loginUrl = `${origin}/login/${business.slug}`;
+
+    await sendCampaignEmail({
+      from: resolveFromAddress(business.emailFromName, business.emailFromAddress),
+      to: email,
+      subject: `You've been added to ${business.name} on AI BOS CRM`,
+      html: `<p>Hi ${name},</p><p>${currentAgent.name} added you as a ${requestedRole === "ADMIN" ? "admin" : "team member"} on ${business.name}'s AI BOS CRM.</p><p><a href="${loginUrl}">${loginUrl}</a></p><p>Sign in with this email address — since this is your first time, whatever password you type in will become your password.</p>`,
+    });
+  } catch {
+    // Swallowed intentionally — see comment above.
+  }
 }
 
 export async function updateAgentRole(agentId: string, role: AgentRole) {
