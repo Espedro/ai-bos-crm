@@ -67,6 +67,9 @@
 }
 
 :root {
+  /* Single face for headings and body, matching the command-center design
+     reference — see src/app/layout.tsx, --font-sans is Inter. */
+  --font-heading: var(--font-sans);
   --background: oklch(0.965 0.006 275);
   --foreground: oklch(0.2 0.006 275);
   --card: oklch(1 0 0);
