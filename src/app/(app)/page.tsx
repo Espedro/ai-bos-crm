@@ -191,7 +191,7 @@ export default async function DashboardPage() {
               : "border-border bg-muted text-muted-foreground"
           )}
         >
-          <span className="size-2 rounded-full bg-current" />
+          <span className="size-2 bg-current" />
           {anyChannelConnected ? "Automation Live" : "No channel connected"}
         </span>
       </div>
@@ -267,7 +267,7 @@ export default async function DashboardPage() {
                 return (
                   <div key={stage.id} className="min-w-[150px] flex-1 space-y-1.5 px-4 py-4">
                     <div className="flex items-center gap-1.5">
-                      <span className={cn("size-1.5 rounded-full", stageDotColor(stage.name, index))} />
+                      <span className={cn("size-1.5", stageDotColor(stage.name, index))} />
                       <p className="truncate text-xs font-semibold text-muted-foreground uppercase">
                         {stage.name}
                       </p>
@@ -430,7 +430,7 @@ export default async function DashboardPage() {
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold",
+                    "shrink-0 px-2.5 py-1 text-[11px] font-bold uppercase",
                     stageBadgeClasses[deal.stageName.toLowerCase()] ?? "bg-primary text-primary-foreground"
                   )}
                 >

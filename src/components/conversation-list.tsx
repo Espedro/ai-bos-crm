@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { ChannelIcon } from "@/components/channel-icon";
 import { cn } from "@/lib/utils";
@@ -12,10 +11,10 @@ import type { getConversations } from "@/lib/actions/conversations";
 
 type Conversation = Awaited<ReturnType<typeof getConversations>>[number];
 
-const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  AI_HANDLING: "secondary",
-  ESCALATED: "destructive",
-  CLOSED: "outline",
+const statusClasses: Record<string, string> = {
+  AI_HANDLING: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
+  ESCALATED: "bg-[var(--status-critical)]/15 text-[var(--status-critical)]",
+  CLOSED: "bg-muted text-muted-foreground",
 };
 
 const contactStatusClasses: Record<string, string> = {
@@ -92,7 +91,7 @@ export function ConversationList({
               }
             }}
             placeholder="Filter by name or message..."
-            className="h-8 w-full rounded-md border border-input bg-background pr-7 pl-8 text-xs outline-none placeholder:text-muted-foreground transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-8 w-full border border-input bg-background pr-7 pl-8 text-xs outline-none placeholder:text-muted-foreground transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
           />
           {filter && (
             <button
@@ -142,12 +141,17 @@ export function ConversationList({
                   {lastMessage ? lastMessage.body : "No messages yet"}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <Badge variant={statusVariant[conversation.status]}>
-                    {conversation.status.replace("_", " ")}
-                  </Badge>
                   <span
                     className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                      "px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                      statusClasses[conversation.status]
+                    )}
+                  >
+                    {conversation.status.replace("_", " ")}
+                  </span>
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 text-[10px] font-semibold",
                       contactStatusClasses[conversation.contact.status]
                     )}
                   >

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getConversation } from "@/lib/actions/conversations";
 import { getAgents } from "@/lib/actions/agents";
 import { getStages } from "@/lib/actions/deals";
-import { Badge } from "@/components/ui/badge";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { ConversationStatusControls } from "@/components/conversation-status-controls";
 import { ConversationContextPanel } from "@/components/conversation-context-panel";
@@ -39,6 +38,12 @@ const contactStatusClasses: Record<string, string> = {
   LEAD: "bg-[var(--chart-3)]/15 text-[var(--chart-3)]",
   QUALIFIED: "bg-[var(--chart-5)]/15 text-[var(--chart-5)]",
   CUSTOMER: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
+};
+
+const conversationStatusClasses: Record<string, string> = {
+  AI_HANDLING: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
+  ESCALATED: "bg-[var(--status-critical)]/15 text-[var(--status-critical)]",
+  CLOSED: "bg-muted text-muted-foreground",
 };
 
 type MessageGroup = { sender: string; messages: Message[] };
@@ -130,11 +135,20 @@ export default async function ConversationDetailPage({
               </Link>
             </h1>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline">{conversation.channel}</Badge>
-              <Badge variant="secondary">{conversation.status.replace("_", " ")}</Badge>
+              <span className="border border-input px-2 py-0.5 text-[11px] font-bold uppercase text-muted-foreground">
+                {conversation.channel}
+              </span>
               <span
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  "px-2 py-0.5 text-[11px] font-bold uppercase",
+                  conversationStatusClasses[conversation.status]
+                )}
+              >
+                {conversation.status.replace("_", " ")}
+              </span>
+              <span
+                className={cn(
+                  "px-2 py-0.5 text-[11px] font-semibold",
                   contactStatusClasses[conversation.contact.status]
                 )}
               >
@@ -157,7 +171,7 @@ export default async function ConversationDetailPage({
           if (item.type === "date") {
             return (
               <div key={item.key} className="my-3 flex items-center justify-center">
-                <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                <span className="bg-muted px-3 py-1 text-[11px] font-semibold text-muted-foreground">
                   {dateSeparatorLabel(item.date)}
                 </span>
               </div>

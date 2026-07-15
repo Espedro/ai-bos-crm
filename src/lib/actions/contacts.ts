@@ -11,8 +11,37 @@ export async function getContacts() {
   const agent = await getCurrentAgent();
   return prisma.contact.findMany({
     where: { businessId: agent.businessId },
-    include: { company: true, assignedAgent: true },
+    include: {
+      company: true,
+      assignedAgent: true,
+      conversations: {
+        orderBy: { updatedAt: "desc" },
+        take: 1,
+        select: { channel: true, status: true, updatedAt: true },
+      },
+      _count: { select: { formSubmissions: true } },
+    },
     orderBy: { createdAt: "desc" },
+  });
+}
+
+/** Compact preview for the Contacts list page's detail panel — fetched
+ * on-demand per selected row rather than upfront for every contact. */
+export async function getContactPreview(id: string) {
+  const agent = await getCurrentAgent();
+  return prisma.contact.findFirst({
+    where: { id, businessId: agent.businessId },
+    include: {
+      company: true,
+      assignedAgent: true,
+      conversations: {
+        orderBy: { updatedAt: "desc" },
+        take: 1,
+        select: { channel: true, status: true, updatedAt: true },
+      },
+      activities: { orderBy: { createdAt: "desc" }, take: 4 },
+      _count: { select: { deals: true } },
+    },
   });
 }
 
