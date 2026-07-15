@@ -12,7 +12,7 @@ export function InboxShell({
   hasActive?: boolean;
 }) {
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden bg-card lg:h-screen">
+    <div className="flex h-[calc(100vh-124px)] overflow-hidden border border-border bg-card shadow-sm lg:h-[calc(100vh-68px)]">
       <div
         className={cn(
           "w-full shrink-0 flex-col border-r sm:w-[340px]",

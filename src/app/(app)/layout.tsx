@@ -17,7 +17,11 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row">
       <Sidebar agentName={agent.name} agentRole={agent.role} />
-      <main className="flex min-h-screen flex-1 flex-col overflow-x-hidden">{children}</main>
+      {/* Exact padding from the design reference (28px 32px 40px), applied
+          uniformly to every page including Inbox — not a responsive scale. */}
+      <main className="flex min-h-screen flex-1 flex-col overflow-x-hidden pt-7 pr-8 pb-10 pl-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">{children}</div>
+      </main>
       <CommandPalette />
     </div>
   );
