@@ -15,11 +15,11 @@ export async function ConversationListPane({
 
   return (
     <>
-      <div className="shrink-0 border-b px-4 py-4">
-        <h1 className="text-lg font-bold tracking-tight">
+      <div className="shrink-0 border-b bg-muted/40 px-4 py-3">
+        <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
           {channel ? CHANNEL_TITLES[channel] : "All Conversations"}
-        </h1>
-        <p className="text-xs text-muted-foreground">
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {conversations.length} {conversations.length === 1 ? "conversation" : "conversations"}
         </p>
       </div>

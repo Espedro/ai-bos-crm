@@ -23,7 +23,10 @@ export async function getForms() {
   return prisma.form.findMany({
     where: { businessId: agent.businessId },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { submissions: true } } },
+    include: {
+      _count: { select: { submissions: true } },
+      submissions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+    },
   });
 }
 

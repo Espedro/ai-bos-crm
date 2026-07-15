@@ -5,8 +5,9 @@ import { getCurrentAgent } from "@/lib/current-agent";
 import { CopyableField } from "@/components/copyable-field";
 import { DeleteFormButton } from "@/components/delete-form-button";
 import { FormCoverImageEditor } from "@/components/form-cover-image-editor";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PanelHeader } from "@/components/panel-header";
+import { Card } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
 
 export default async function FormDetailPage({
   params,
@@ -24,74 +25,119 @@ export default async function FormDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{form.name}</h1>
-          {form.description && (
-            <p className="text-sm text-muted-foreground">{form.description}</p>
-          )}
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">{form.name}</h1>
+            <span className="inline-flex bg-[var(--status-good)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--status-good)] uppercase">
+              Live
+            </span>
+          </div>
+          {form.description && <p className="text-sm text-muted-foreground">{form.description}</p>}
         </div>
         {isAdmin && <DeleteFormButton id={form.id} redirectTo="/forms" />}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Cover image</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FormCoverImageEditor formId={form.id} initialUrl={form.coverImageUrl} />
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="gap-0 overflow-hidden py-0">
+          <PanelHeader title="Cover Image" />
+          <div className="p-4">
+            <FormCoverImageEditor formId={form.id} initialUrl={form.coverImageUrl} />
+          </div>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Share this form</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CopyableField label="Public link" value={shareUrl} />
-        </CardContent>
-      </Card>
+        <Card className="gap-0 overflow-hidden py-0">
+          <PanelHeader title="Share This Form" subtitle="Public link, no login required" />
+          <div className="p-4">
+            <CopyableField label="Public link" value={shareUrl} />
+          </div>
+        </Card>
+      </div>
 
-      <div>
-        <h2 className="mb-3 text-lg font-semibold tracking-tight">
-          Submissions ({form.submissions.length})
-        </h2>
-        <div className="space-y-3">
-          {form.submissions.map((submission) => {
-            const data = JSON.parse(submission.data) as Record<string, string>;
-            const { firstName, lastName, email, phone, message, ...extra } = data;
-            const extraEntries = Object.entries(extra).filter(([, v]) => v);
-            return (
-              <Card key={submission.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">
-                      {firstName} {lastName}
-                    </p>
-                    {submission.contact && <Badge variant="secondary">Contact created</Badge>}
-                  </div>
-                  <p className="text-sm text-muted-foreground">{email}</p>
-                  {phone && <p className="text-sm text-muted-foreground">{phone}</p>}
-                  {message && <p className="mt-2 text-sm">{message}</p>}
-                  {extraEntries.length > 0 && (
-                    <dl className="mt-2 space-y-1 border-t pt-2">
-                      {extraEntries.map(([key, value]) => (
-                        <div key={key} className="text-sm">
-                          <dt className="inline font-medium text-muted-foreground">{key}: </dt>
-                          <dd className="inline">{value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+      <Card className="gap-0 overflow-hidden py-0">
+        <PanelHeader
+          title="Submissions"
+          subtitle={`${form.submissions.length} total`}
+          badge={
+            form.submissions.length > 0 && (
+              <span className="bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary uppercase">
+                {form.submissions.length}
+              </span>
+            )
+          }
+        />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] border-collapse">
+            <thead>
+              <tr className="border-b bg-muted/40">
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Name
+                </th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Contact
+                </th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Message
+                </th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Details
+                </th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Submitted
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {form.submissions.map((submission) => {
+                const data = JSON.parse(submission.data) as Record<string, string>;
+                const { firstName, lastName, email, phone, message, ...extra } = data;
+                const extraEntries = Object.entries(extra).filter(([, v]) => v);
+                return (
+                  <tr key={submission.id} className="border-b align-top hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold">
+                        {firstName} {lastName}
+                      </p>
+                      {submission.contact && (
+                        <span className="mt-1 inline-flex bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary uppercase">
+                          Contact created
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <p>{email || "—"}</p>
+                      {phone && <p>{phone}</p>}
+                    </td>
+                    <td className="max-w-[220px] px-4 py-3 text-sm text-muted-foreground">
+                      {message || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {extraEntries.length > 0 ? (
+                        <dl className="space-y-0.5">
+                          {extraEntries.map(([key, value]) => (
+                            <div key={key}>
+                              <dt className="inline font-semibold">{key}: </dt>
+                              <dd className="inline">{value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap text-muted-foreground">
+                      {formatDistanceToNow(submission.createdAt, { addSuffix: true })}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
           {form.submissions.length === 0 && (
-            <p className="text-sm text-muted-foreground">No submissions yet.</p>
+            <p className="px-4 py-8 text-sm text-muted-foreground">No submissions yet.</p>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

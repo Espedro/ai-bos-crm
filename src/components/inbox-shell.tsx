@@ -3,10 +3,12 @@ import { cn } from "@/lib/utils";
 export function InboxShell({
   list,
   children,
+  context,
   hasActive = false,
 }: {
   list: React.ReactNode;
   children: React.ReactNode;
+  context?: React.ReactNode;
   hasActive?: boolean;
 }) {
   return (
@@ -27,6 +29,11 @@ export function InboxShell({
       >
         {children}
       </div>
+      {context && (
+        <div className="hidden w-[300px] shrink-0 flex-col overflow-y-auto border-l xl:flex">
+          {context}
+        </div>
+      )}
     </div>
   );
 }

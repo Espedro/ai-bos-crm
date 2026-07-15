@@ -6,7 +6,7 @@ import { getStages } from "@/lib/actions/deals";
 import { Badge } from "@/components/ui/badge";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { ConversationStatusControls } from "@/components/conversation-status-controls";
-import { ConversationDealControl } from "@/components/conversation-deal-control";
+import { ConversationContextPanel } from "@/components/conversation-context-panel";
 import { CustomerMessageForm } from "@/components/customer-message-form";
 import { AgentMessageForm } from "@/components/agent-message-form";
 import { InboxShell } from "@/components/inbox-shell";
@@ -98,7 +98,21 @@ export default async function ConversationDetailPage({
   const backHref = `/inbox${channel ? `?channel=${channel}` : ""}`;
 
   return (
-    <InboxShell list={<ConversationListPane channel={channel} activeId={id} />} hasActive>
+    <InboxShell
+      list={<ConversationListPane channel={channel} activeId={id} />}
+      context={
+        <ConversationContextPanel
+          contact={conversation.contact}
+          channel={conversation.channel}
+          assignedAgentName={conversation.assignedAgent?.name}
+          updatedAt={conversation.updatedAt}
+          status={conversation.status}
+          deals={conversation.contact.deals}
+          stages={stages}
+        />
+      }
+      hasActive
+    >
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-b px-3 py-3 sm:px-5 sm:py-4">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Link
@@ -138,12 +152,6 @@ export default async function ConversationDetailPage({
         <ConversationStatusControls conversationId={conversation.id} status={conversation.status} />
       </div>
 
-      {conversation.contact.deals.length > 0 && (
-        <div className="shrink-0 border-b bg-muted/30 px-3 py-2 sm:px-5">
-          <ConversationDealControl deals={conversation.contact.deals} stages={stages} />
-        </div>
-      )}
-
       <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-4 sm:px-5">
         {thread.map((item) => {
           if (item.type === "date") {
@@ -182,14 +190,12 @@ export default async function ConversationDetailPage({
                   <p className="px-1 text-xs font-medium text-muted-foreground">
                     {senderLabels[sender]} · {format(messages[0].createdAt, "p")}
                   </p>
-                  {messages.map((message, index) => (
+                  {messages.map((message) => (
                     <div
                       key={message.id}
                       className={cn(
-                        "rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap shadow-sm",
-                        bubbleStyles[sender],
-                        index === messages.length - 1 &&
-                          (isCustomer ? "rounded-bl-md" : "rounded-br-md")
+                        "border px-3.5 py-2 text-sm whitespace-pre-wrap shadow-sm",
+                        bubbleStyles[sender]
                       )}
                     >
                       {message.body}

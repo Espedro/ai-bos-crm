@@ -24,6 +24,13 @@ const contactStatusClasses: Record<string, string> = {
   CUSTOMER: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
 };
 
+const TABS = [
+  { key: "ALL", label: "All" },
+  { key: "ESCALATED", label: "Needs Human" },
+  { key: "AI_HANDLING", label: "AI Handling" },
+  { key: "CLOSED", label: "Closed" },
+] as const;
+
 export function ConversationList({
   conversations,
   activeId,
@@ -34,20 +41,43 @@ export function ConversationList({
   query: string;
 }) {
   const [filter, setFilter] = useState("");
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("ALL");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return conversations;
     return conversations.filter((conversation) => {
+      if (tab !== "ALL" && conversation.status !== tab) return false;
+      if (!q) return true;
       const name = `${conversation.contact.firstName} ${conversation.contact.lastName}`.toLowerCase();
       const preview = conversation.messages[0]?.body?.toLowerCase() ?? "";
       return name.includes(q) || preview.includes(q);
     });
-  }, [filter, conversations]);
+  }, [filter, tab, conversations]);
 
   return (
     <>
+      <div className="flex shrink-0 items-center border-b">
+        {TABS.map((t) => {
+          const count = t.key === "ALL" ? conversations.length : conversations.filter((c) => c.status === t.key).length;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "flex h-9 flex-1 items-center justify-center gap-1 border-r text-[11px] font-bold uppercase last:border-r-0",
+                tab === t.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/40 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {t.label}
+              <span className="tabular-nums opacity-70">{count}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="shrink-0 border-b px-3 py-3">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
