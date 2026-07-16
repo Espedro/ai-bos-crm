@@ -13,12 +13,11 @@ export default async function ContactsPage() {
   ]);
 
   return (
-    <PageShell
-      kicker={`${contacts.length} total contact${contacts.length === 1 ? "" : "s"}`}
-      title="Lead Intelligence"
-      actions={<NewContactDialog companies={companies} agents={agents} />}
-    >
-      <ContactsWorkspace contacts={contacts} />
+    <PageShell kicker={`${contacts.length} total contact${contacts.length === 1 ? "" : "s"}`} title="Contacts">
+      <ContactsWorkspace
+        contacts={contacts}
+        newContactDialog={<NewContactDialog companies={companies} agents={agents} />}
+      />
     </PageShell>
   );
 }
