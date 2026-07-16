@@ -14,13 +14,13 @@ import { PageShell } from "@/components/page-shell";
 import { CHANNEL_TITLES, parseChannelParam } from "@/lib/channel-ui";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
-import { Bot, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Message } from "@prisma/client";
 
 const bubbleStyles: Record<string, string> = {
-  CUSTOMER: "bg-muted text-foreground",
-  AI: "bg-primary/10 text-foreground border border-primary/20",
-  AGENT: "bg-primary text-primary-foreground",
+  CUSTOMER: "border-border bg-card text-foreground",
+  AI: "border-[var(--status-good)]/30 bg-[var(--status-good)]/8 text-foreground",
+  AGENT: "border-primary/30 bg-primary/8 text-foreground",
 };
 
 const senderLabels: Record<string, string> = {
@@ -29,6 +29,11 @@ const senderLabels: Record<string, string> = {
   AGENT: "Agent",
 };
 
+const BADGE_BASE =
+  "inline-flex h-6 items-center gap-1 border px-2 text-[11px] font-extrabold tracking-wide whitespace-nowrap uppercase";
+
+const BADGE_DEFAULT = "border-border bg-muted text-muted-foreground";
+
 const contactStatusLabels: Record<string, string> = {
   LEAD: "Lead",
   QUALIFIED: "Qualified",
@@ -36,40 +41,38 @@ const contactStatusLabels: Record<string, string> = {
 };
 
 const contactStatusClasses: Record<string, string> = {
-  LEAD: "bg-[var(--chart-3)]/15 text-[var(--chart-3)]",
-  QUALIFIED: "bg-[var(--chart-5)]/15 text-[var(--chart-5)]",
-  CUSTOMER: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
+  LEAD: "border-[var(--status-serious)]/35 bg-[var(--status-warning)]/15 text-[var(--status-serious)]",
+  QUALIFIED: "border-[var(--chart-5)]/35 bg-[var(--chart-5)]/10 text-[var(--chart-5)]",
+  CUSTOMER: "border-[var(--status-good)]/35 bg-[var(--status-good)]/10 text-[var(--status-good)]",
+};
+
+const conversationStatusLabels: Record<string, string> = {
+  AI_HANDLING: "AI Handling",
+  ESCALATED: "Escalated",
+  CLOSED: "Closed",
 };
 
 const conversationStatusClasses: Record<string, string> = {
-  AI_HANDLING: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
-  ESCALATED: "bg-[var(--status-critical)]/15 text-[var(--status-critical)]",
-  CLOSED: "bg-muted text-muted-foreground",
+  AI_HANDLING: "border-[var(--status-good)]/35 bg-[var(--status-good)]/10 text-[var(--status-good)]",
+  ESCALATED: "border-[var(--status-critical)]/35 bg-[var(--status-critical)]/10 text-[var(--status-critical)]",
+  CLOSED: BADGE_DEFAULT,
 };
 
-type MessageGroup = { sender: string; messages: Message[] };
 type ThreadItem =
   | { type: "date"; key: string; date: Date }
-  | { type: "group"; key: string; group: MessageGroup };
+  | { type: "message"; key: string; message: Message };
 
 function buildThread(messages: Message[]): ThreadItem[] {
   const items: ThreadItem[] = [];
   let lastDayKey: string | null = null;
-  let currentGroup: MessageGroup | null = null;
 
   for (const message of messages) {
     const dayKey = format(message.createdAt, "yyyy-MM-dd");
     if (dayKey !== lastDayKey) {
       items.push({ type: "date", key: `date-${dayKey}`, date: message.createdAt });
       lastDayKey = dayKey;
-      currentGroup = null;
     }
-    if (currentGroup && currentGroup.sender === message.sender) {
-      currentGroup.messages.push(message);
-    } else {
-      currentGroup = { sender: message.sender, messages: [message] };
-      items.push({ type: "group", key: `group-${message.id}`, group: currentGroup });
-    }
+    items.push({ type: "message", key: message.id, message });
   }
   return items;
 }
@@ -142,23 +145,11 @@ export default async function ConversationDetailPage({
               </Link>
             </h1>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="border border-input px-2 py-0.5 text-[11px] font-bold uppercase text-muted-foreground">
-                {conversation.channel}
+              <span className={cn(BADGE_BASE, BADGE_DEFAULT)}>{conversation.channel}</span>
+              <span className={cn(BADGE_BASE, conversationStatusClasses[conversation.status])}>
+                {conversationStatusLabels[conversation.status]}
               </span>
-              <span
-                className={cn(
-                  "px-2 py-0.5 text-[11px] font-bold uppercase",
-                  conversationStatusClasses[conversation.status]
-                )}
-              >
-                {conversation.status.replace("_", " ")}
-              </span>
-              <span
-                className={cn(
-                  "px-2 py-0.5 text-[11px] font-semibold",
-                  contactStatusClasses[conversation.contact.status]
-                )}
-              >
+              <span className={cn(BADGE_BASE, contactStatusClasses[conversation.contact.status])}>
                 {contactStatusLabels[conversation.contact.status]}
               </span>
               {conversation.assignedAgent && (
@@ -185,44 +176,17 @@ export default async function ConversationDetailPage({
             );
           }
 
-          const { sender, messages } = item.group;
-          const isCustomer = sender === "CUSTOMER";
-          const avatar =
-            sender === "CUSTOMER" ? (
-              <EntityAvatar name={contactName} size="sm" />
-            ) : sender === "AGENT" ? (
-              <EntityAvatar name={conversation.assignedAgent?.name ?? "Agent"} size="sm" />
-            ) : (
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Bot className="size-4" />
-              </div>
-            );
+          const { message } = item;
+          const isCustomer = message.sender === "CUSTOMER";
 
           return (
-            <div key={item.key} className={cn("mt-3 flex", isCustomer ? "justify-start" : "justify-end")}>
-              <div className={cn("flex items-end gap-2", !isCustomer && "flex-row-reverse")}>
-                {avatar}
-                <div
-                  className={cn(
-                    "flex max-w-[78vw] flex-col gap-0.5 sm:max-w-[420px]",
-                    !isCustomer && "items-end"
-                  )}
-                >
-                  <p className="px-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-                    {senderLabels[sender]} · {format(messages[0].createdAt, "p")}
-                  </p>
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "border px-3.5 py-2 text-sm whitespace-pre-wrap shadow-sm",
-                        bubbleStyles[sender]
-                      )}
-                    >
-                      {message.body}
-                    </div>
-                  ))}
+            <div key={item.key} className={cn("mt-3.5 flex", isCustomer ? "justify-start" : "justify-end")}>
+              <div className={cn("max-w-[85%] border px-3 py-2.5 shadow-sm sm:max-w-[72%]", bubbleStyles[message.sender])}>
+                <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase">
+                  <span>{senderLabels[message.sender]}</span>
+                  <span>{format(message.createdAt, "p")}</span>
                 </div>
+                <p className="text-sm whitespace-pre-wrap">{message.body}</p>
               </div>
             </div>
           );

@@ -11,16 +11,33 @@ import type { getConversations } from "@/lib/actions/conversations";
 
 type Conversation = Awaited<ReturnType<typeof getConversations>>[number];
 
+const BADGE_BASE =
+  "inline-flex h-6 items-center gap-1 border px-2 text-[11px] font-extrabold tracking-wide whitespace-nowrap uppercase";
+
+const BADGE_DEFAULT = "border-border bg-muted text-muted-foreground";
+
 const statusClasses: Record<string, string> = {
-  AI_HANDLING: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
-  ESCALATED: "bg-[var(--status-critical)]/15 text-[var(--status-critical)]",
-  CLOSED: "bg-muted text-muted-foreground",
+  AI_HANDLING: "border-[var(--status-good)]/35 bg-[var(--status-good)]/10 text-[var(--status-good)]",
+  ESCALATED: "border-[var(--status-critical)]/35 bg-[var(--status-critical)]/10 text-[var(--status-critical)]",
+  CLOSED: BADGE_DEFAULT,
+};
+
+const statusLabels: Record<string, string> = {
+  AI_HANDLING: "AI Handling",
+  ESCALATED: "Escalated",
+  CLOSED: "Closed",
 };
 
 const contactStatusClasses: Record<string, string> = {
-  LEAD: "bg-[var(--chart-3)]/15 text-[var(--chart-3)]",
-  QUALIFIED: "bg-[var(--chart-5)]/15 text-[var(--chart-5)]",
-  CUSTOMER: "bg-[var(--status-good)]/15 text-[var(--status-good)]",
+  LEAD: "border-[var(--status-serious)]/35 bg-[var(--status-warning)]/15 text-[var(--status-serious)]",
+  QUALIFIED: "border-[var(--chart-5)]/35 bg-[var(--chart-5)]/10 text-[var(--chart-5)]",
+  CUSTOMER: "border-[var(--status-good)]/35 bg-[var(--status-good)]/10 text-[var(--status-good)]",
+};
+
+const contactStatusLabels: Record<string, string> = {
+  LEAD: "Lead",
+  QUALIFIED: "Qualified",
+  CUSTOMER: "Customer",
 };
 
 const TABS = [
@@ -56,7 +73,7 @@ export function ConversationList({
 
   return (
     <>
-      <div className="flex shrink-0 items-center border-b">
+      <div className="flex shrink-0 items-center overflow-x-auto border-b">
         {TABS.map((t) => {
           const count = t.key === "ALL" ? conversations.length : conversations.filter((c) => c.status === t.key).length;
           return (
@@ -65,7 +82,7 @@ export function ConversationList({
               type="button"
               onClick={() => setTab(t.key)}
               className={cn(
-                "flex h-9 flex-1 items-center justify-center gap-1 border-r text-[11px] font-bold uppercase last:border-r-0",
+                "flex h-10 shrink-0 items-center justify-center gap-1 border-r px-3 text-[12px] font-extrabold whitespace-nowrap uppercase",
                 tab === t.key
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted/40 text-muted-foreground hover:bg-muted"
@@ -77,7 +94,7 @@ export function ConversationList({
           );
         })}
       </div>
-      <div className="shrink-0 border-b px-3 py-3">
+      <div className="shrink-0 border-b p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -90,8 +107,8 @@ export function ConversationList({
                 setFilter("");
               }
             }}
-            placeholder="Filter by name or message..."
-            className="h-8 w-full border border-input bg-background pr-7 pl-8 text-xs outline-none placeholder:text-muted-foreground transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
+            placeholder="Search message or contact..."
+            className="h-[38px] w-full border border-input bg-muted/30 pr-7 pl-8 text-xs outline-none placeholder:text-muted-foreground transition-shadow focus-visible:border-primary focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring"
           />
           {filter && (
             <button
@@ -119,50 +136,40 @@ export function ConversationList({
               key={conversation.id}
               href={`/inbox/${conversation.id}${query}`}
               className={cn(
-                "flex animate-in items-start gap-3 px-4 py-3 fade-in-0 transition-colors duration-150",
-                active ? "bg-primary/10" : "hover:bg-muted/50"
+                "block animate-in border-b px-3 py-[13px] fade-in-0 transition-colors duration-150",
+                active ? "bg-primary/5" : "hover:bg-primary/5"
               )}
             >
-              <div className="relative shrink-0">
-                <EntityAvatar name={contactName} size="sm" />
-                <ChannelIcon
-                  channel={conversation.channel}
-                  className="absolute -right-1 -bottom-1 size-4 ring-2 ring-background"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
+              <div className="mb-2 flex items-start justify-between gap-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="relative shrink-0">
+                    <EntityAvatar name={contactName} size="sm" />
+                    <ChannelIcon
+                      channel={conversation.channel}
+                      className="absolute -right-1 -bottom-1 size-4 ring-2 ring-background"
+                    />
+                  </div>
                   <p className="truncate text-sm font-semibold">{contactName}</p>
-                  <span className="shrink-0 text-[11px] text-muted-foreground">
-                    {formatDistanceToNow(conversation.updatedAt, { addSuffix: true })}
-                  </span>
                 </div>
-                <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                  {lastMessage ? lastMessage.body : "No messages yet"}
-                </p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 text-[10px] font-bold uppercase",
-                      statusClasses[conversation.status]
-                    )}
-                  >
-                    {conversation.status.replace("_", " ")}
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {formatDistanceToNow(conversation.updatedAt, { addSuffix: true })}
+                </span>
+              </div>
+              <p className="mb-2.5 truncate text-xs text-muted-foreground">
+                {lastMessage ? lastMessage.body : "No messages yet"}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={cn(BADGE_BASE, statusClasses[conversation.status])}>
+                  {statusLabels[conversation.status]}
+                </span>
+                <span className={cn(BADGE_BASE, contactStatusClasses[conversation.contact.status])}>
+                  {contactStatusLabels[conversation.contact.status]}
+                </span>
+                {conversation.assignedAgent && (
+                  <span className={cn(BADGE_BASE, "border-primary/35 bg-primary/10 text-primary")}>
+                    {conversation.assignedAgent.name}
                   </span>
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 text-[10px] font-semibold",
-                      contactStatusClasses[conversation.contact.status]
-                    )}
-                  >
-                    {conversation.contact.status}
-                  </span>
-                  {conversation.assignedAgent && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {conversation.assignedAgent.name}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </Link>
           );

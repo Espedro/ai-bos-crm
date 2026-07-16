@@ -43,11 +43,13 @@ export function AgentMessageForm({
         <p className="px-1 text-xs text-muted-foreground">Drafting a suggested reply…</p>
       )}
       {suggestion && (
-        <div className="border border-[var(--status-good)]/30 bg-[var(--status-good)]/10 p-3">
-          <p className="mb-1 text-[11px] font-bold tracking-wide text-[var(--status-good)] uppercase">
-            Suggested Reply
+        <div className="border border-[var(--chart-2)]/30 bg-[var(--chart-2)]/8 p-3">
+          <p className="text-sm">
+            <span className="font-extrabold tracking-wide text-[var(--chart-2)] uppercase">
+              Suggested reply:
+            </span>{" "}
+            {suggestion}
           </p>
-          <p className="text-sm">{suggestion}</p>
         </div>
       )}
 

@@ -15,7 +15,7 @@ export function InboxShell({
     <div className="flex h-[calc(100vh-194px)] overflow-hidden border border-border bg-card shadow-sm lg:h-[calc(100vh-138px)]">
       <div
         className={cn(
-          "w-full shrink-0 flex-col border-r sm:w-[340px]",
+          "w-full shrink-0 flex-col border-r sm:w-[360px]",
           hasActive ? "hidden sm:flex" : "flex"
         )}
       >
@@ -30,7 +30,7 @@ export function InboxShell({
         {children}
       </div>
       {context && (
-        <div className="hidden w-[300px] shrink-0 flex-col overflow-y-auto border-l xl:flex">
+        <div className="hidden w-[340px] shrink-0 flex-col overflow-y-auto border-l xl:flex">
           {context}
         </div>
       )}

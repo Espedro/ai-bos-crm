@@ -98,10 +98,10 @@ export function ConversationContextPanel({
           </div>
           <span
             className={cn(
-              "shrink-0 px-2 py-0.5 text-[11px] font-bold uppercase",
+              "inline-flex h-6 shrink-0 items-center border px-2 text-[11px] font-extrabold whitespace-nowrap uppercase",
               aiActive
-                ? "bg-[var(--status-good)]/15 text-[var(--status-good)]"
-                : "bg-[var(--status-warning)]/20 text-[var(--status-serious)]"
+                ? "border-[var(--status-good)]/35 bg-[var(--status-good)]/10 text-[var(--status-good)]"
+                : "border-[var(--status-serious)]/35 bg-[var(--status-warning)]/15 text-[var(--status-serious)]"
             )}
           >
             {aiActive ? "Active" : "Paused"}
