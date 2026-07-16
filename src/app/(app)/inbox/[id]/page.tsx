@@ -6,7 +6,6 @@ import { getStages } from "@/lib/actions/deals";
 import { EntityAvatar } from "@/components/entity-avatar";
 import { ConversationStatusControls } from "@/components/conversation-status-controls";
 import { ConversationContextPanel } from "@/components/conversation-context-panel";
-import { CustomerMessageForm } from "@/components/customer-message-form";
 import { AgentMessageForm } from "@/components/agent-message-form";
 import { InboxShell } from "@/components/inbox-shell";
 import { ConversationListPane } from "@/components/conversation-list-pane";
@@ -192,9 +191,7 @@ export default async function ConversationDetailPage({
           );
         })}
         {conversation.messages.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No messages yet. Send one below to simulate the customer starting the conversation.
-          </p>
+          <p className="text-sm text-muted-foreground">No messages yet.</p>
         )}
       </div>
 
@@ -205,8 +202,14 @@ export default async function ConversationDetailPage({
             contactId={conversation.contact.id}
             agents={agents}
           />
+        ) : conversation.status === "CLOSED" ? (
+          <p className="text-sm text-muted-foreground">
+            This conversation is closed. Resume AI above to reopen it.
+          </p>
         ) : (
-          <CustomerMessageForm conversationId={conversation.id} />
+          <p className="text-sm text-muted-foreground">
+            AI Employee is handling this conversation automatically — take over above to reply as a human.
+          </p>
         )}
       </div>
     </InboxShell>

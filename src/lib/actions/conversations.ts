@@ -258,16 +258,6 @@ export async function getSuggestedReply(conversationId: string): Promise<string 
   return reply;
 }
 
-export async function sendCustomerMessage(conversationId: string, body: string) {
-  const text = body.trim();
-  if (!text) return;
-
-  await deliverCustomerMessage(conversationId, text);
-
-  revalidatePath(`/inbox/${conversationId}`);
-  revalidatePath("/inbox");
-}
-
 export async function sendAgentMessage(
   conversationId: string,
   body: string,
