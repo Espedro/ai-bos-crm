@@ -34,3 +34,36 @@ export async function getLeadTrend(days = 14) {
     count,
   }));
 }
+
+/** Average time between a customer's message and the AI's first reply to
+ * it, across conversations touched in the last `days` days — only the
+ * first CUSTOMER→AI gap per conversation counts, so a slow first reply
+ * isn't hidden by fast follow-ups later in the same thread. */
+export async function getAvgFirstReplySeconds(days = 7): Promise<number | null> {
+  const agent = await getCurrentAgent();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const conversations = await prisma.conversation.findMany({
+    where: { businessId: agent.businessId, updatedAt: { gte: since } },
+    select: {
+      messages: {
+        where: { sender: { in: ["CUSTOMER", "AI"] } },
+        orderBy: { createdAt: "asc" },
+        select: { sender: true, createdAt: true },
+      },
+    },
+  });
+
+  const gaps: number[] = [];
+  for (const conv of conversations) {
+    for (let i = 0; i < conv.messages.length - 1; i++) {
+      if (conv.messages[i].sender === "CUSTOMER" && conv.messages[i + 1].sender === "AI") {
+        gaps.push((conv.messages[i + 1].createdAt.getTime() - conv.messages[i].createdAt.getTime()) / 1000);
+        break;
+      }
+    }
+  }
+
+  if (gaps.length === 0) return null;
+  return Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+}
