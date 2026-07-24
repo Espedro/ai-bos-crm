@@ -68,5 +68,5 @@ export async function completeSetup() {
     data: { completedAt: new Date() },
   });
 
-  redirect("/");
+  redirect("/dashboard");
 }

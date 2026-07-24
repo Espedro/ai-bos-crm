@@ -25,7 +25,7 @@ export async function getCurrentBusiness(): Promise<Business> {
 /** Use at the top of an admin-only page — sends non-admins back to the dashboard. */
 export async function requireAdminPage(): Promise<Agent> {
   const agent = await getCurrentAgent();
-  if (agent.role !== "ADMIN") redirect("/");
+  if (agent.role !== "ADMIN") redirect("/dashboard");
   return agent;
 }
 

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function LoginEntryPage() {
   const session = await getSession();
-  if (session) redirect("/");
+  if (session) redirect("/dashboard");
 
   const businesses = await prisma.business.findMany({
     select: { slug: true, name: true },

@@ -17,7 +17,7 @@ export default async function BusinessForgotPasswordPage({
   ]);
 
   if (!business) notFound();
-  if (session) redirect("/");
+  if (session) redirect("/dashboard");
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-6 py-12">

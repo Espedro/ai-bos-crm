@@ -49,7 +49,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     const passwordHash = await bcrypt.hash(password, 10);
     await prisma.agent.update({ where: { id: agent.id }, data: { passwordHash } });
     await createSession(agent.id);
-    redirect("/");
+    redirect("/dashboard");
   }
 
   const valid = await bcrypt.compare(password, agent.passwordHash);
@@ -58,7 +58,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   }
 
   await createSession(agent.id);
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {
@@ -200,5 +200,5 @@ export async function resetPassword(
   });
 
   await createSession(agent.id);
-  redirect("/");
+  redirect("/dashboard");
 }

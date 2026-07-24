@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 
 const topLinks = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/companies", label: "Companies", icon: Building2 },
   { href: "/deals", label: "Deals", icon: KanbanSquare },
@@ -161,8 +161,7 @@ export function Sidebar({
         }}
       >
         {topLinks.map((link) => {
-          const active =
-            link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+          const active = pathname.startsWith(link.href);
           const Icon = link.icon;
           return (
             <Link

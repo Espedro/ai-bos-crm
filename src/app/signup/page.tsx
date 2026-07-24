@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function SignupPage() {
   const session = await getSession();
-  if (session) redirect("/");
+  if (session) redirect("/dashboard");
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-6 py-12">

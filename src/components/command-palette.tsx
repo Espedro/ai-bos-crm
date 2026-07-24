@@ -30,7 +30,7 @@ import {
 export const OPEN_COMMAND_PALETTE_EVENT = "open-command-palette";
 
 const navigationItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/companies", label: "Companies", icon: Building2 },
   { href: "/deals", label: "Deals", icon: KanbanSquare },

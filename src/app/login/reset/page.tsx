@@ -11,7 +11,7 @@ export default async function ResetPasswordPage({
 }) {
   const [session, params] = await Promise.all([getSession(), searchParams]);
 
-  if (session) redirect("/");
+  if (session) redirect("/dashboard");
 
   const token = params.token ?? "";
 
